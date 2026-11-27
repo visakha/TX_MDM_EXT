@@ -56,3 +56,13 @@ txmdmext.idmc.publish-job-kind=<kind>
 txmdmext.idmc.publish-job-definition-id=<job_definition_id>
 
 logging.level.com.visakha.txmdmext=INFO
+
+# --- Log file: write the log to ANY folder you choose (outside the app folder is fine) ---
+# Set txmdmext.log-dir to the folder; the file is <log-dir>/tx-mdm-ext.log.
+# Use forward slashes on Windows, e.g. C:/tx-mdm-ext/logs. The folder is created if missing.
+# Console output still appears as well.
+txmdmext.log-dir=C:/tx-mdm-ext/logs
+logging.file.name=${txmdmext.log-dir}/tx-mdm-ext.log
+# Roll the file at 10 MB, keep 30 old files
+logging.logback.rollingpolicy.max-file-size=10MB
+logging.logback.rollingpolicy.max-history=30
