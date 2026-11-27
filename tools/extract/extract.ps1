@@ -25,6 +25,7 @@ $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine("SET MARKUP CSV ON DELIMITER | QUOTE OFF")
 [void]$sb.AppendLine("SET FEEDBACK OFF")
 [void]$sb.AppendLine("SET TERMOUT OFF")
+[void]$sb.AppendLine("SET NUMWIDTH 20")  # epoch-ms numbers in full, not 1.7958E+12
 [void]$sb.AppendLine("SET LONG 20000000")
 [void]$sb.AppendLine("SET LONGCHUNKSIZE 20000000")
 [void]$sb.AppendLine("SET TRIMSPOOL ON")
