@@ -15,7 +15,7 @@ Optional R4-7: after that publish, upload 4a a second time unchanged, publish ag
 | R4-1 blank cell | FI-UC-1 (BID 200) | Patch root, last_name empty | MASTER_UPDATED, dataDiff last_name DELETED (Phonesonly -> null) | last_name kept (blank ignored), only touch_notes UPDATED |
 | R4-2 stale date | FI-UC-2 (BID 201) | Source Last Update Date 2026-01-01, older than R2 (2026-11-26 10:00); last_name -> Addronlystale | Applied anyway: MASTER_UPDATED last_name + touch_notes | Skipped as stale: no event, last_name stays Addronly |
 | R4-3 bad lookup | FI-UC-3 (BID 202) | new phone PH-9 with ph_typ "Mobil" (not on the list) | Row rejected (import shows failed 1), no event, phones still PH-1 + PH-2 | Phone added with empty type (would be a finding) |
-| R4-4 too-long number | FI-UC-4 (BID 203) | new phone PH-8, ph_num 12345678901 (11 digits) | Row rejected "invalid format", no event | Phone added (would contradict round 1 lesson) |
+| R4-4 too-long number | FI-UC-4 (BID 203) | new phone PH-8, phone_num 12345678901 (11 digits) | Row rejected "invalid format", no event | Phone added (would contradict round 1 lesson) |
 | R4-5 no-op | FI-UC-5 (BID 204) | Patch root with exactly its current values and the same R2 date | No event at all | MASTER_UPDATED with empty dataDiff (means every re-send floods the store) |
 | R4-6 second source | FI-UC-1 from zlv_eci | same Source Primary Key FI-UC-1, source zlv_eci, last_name Ecisource, phone FI-UC-1-ECI-PH-1 | New source record + new master: MASTER_CREATED, xref zlv_eci; BID 200 (zlv_ttf) untouched | Lands on BID 200 as a second xref (would mean the key is not source-scoped) |
 | R4-7 rerun (optional) | 4a again | identical file | 0 new events | Events repeat |

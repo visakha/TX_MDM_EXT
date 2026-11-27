@@ -81,7 +81,7 @@ class UseCaseTest {
     assertEquals("ADDED", x.membershipChange());
     GuestChild.Phone ph = (GuestChild.Phone) onlyChild("6b092107", B172).row();
     assertEquals("479cb3c697d943699bf266ca9a23a89e", ph.childId());
-    assertEquals(5125550701L, ph.phNum());
+    assertEquals("5125550701", ph.phoneNum());
     assertEquals("Mobile", ph.phTyp().code());
     assertEquals(List.of(TTF_7), p.membersToOpen().stream().map(MemberVersion::key).toList());
   }
@@ -94,7 +94,7 @@ class UseCaseTest {
     assertEquals("DATA", x.xrefType());
     GuestChild.Phone ph = (GuestChild.Phone) onlyChild("6b092124", B192).row();
     assertEquals("7ddf5b15d8e24f468ecbc53c60c5f812", ph.childId());
-    assertEquals(5125550702L, ph.phNum());
+    assertEquals("5125550702", ph.phoneNum());
     assertEquals(Set.of(ECI_7), members(B192));
   }
 
@@ -142,7 +142,7 @@ class UseCaseTest {
   void uc17TtfAddSecondPhoneLeavesFirstUntouched() {
     ChildVersion v = onlyChild("6b092158", B172);
     assertEquals("2dca242eedb34fa98eacbaa17dd87212", v.row().childId());
-    assertEquals(5125550711L, ((GuestChild.Phone) v.row()).phNum());
+    assertEquals("5125550711", ((GuestChild.Phone) v.row()).phoneNum());
     assertEquals(1, h.childEventsOf(B172, "479cb3c697d943699bf266ca9a23a89e").size());
   }
 
@@ -151,7 +151,7 @@ class UseCaseTest {
     ChildVersion v = onlyChild("6b092171", B172);
     assertEquals("2dca242eedb34fa98eacbaa17dd87212", v.row().childId());
     assertTrue(v.deleted());
-    FieldChangeRow c = change("6b092171", B172, "x_phone[2dca242eedb34fa98eacbaa17dd87212].ph_num");
+    FieldChangeRow c = change("6b092171", B172, "x_phone[2dca242eedb34fa98eacbaa17dd87212].phone_num");
     assertEquals("DELETED", c.changeType());
     assertNull(c.newValue());
   }
@@ -330,7 +330,7 @@ class UseCaseTest {
     assertEquals("y this kolavaridhi", ((GuestRoot) first.master().root()).clnsFirstName());
     GuestChild.Phone ph = (GuestChild.Phone) second.childVersions().getFirst().row();
     assertEquals("d7be8f20468b4238b13ccf42765a5a87", ph.childId());
-    assertEquals(12334455001L, ph.phNum());
+    assertEquals("12334455001", ph.phoneNum());
   }
 
   @Test

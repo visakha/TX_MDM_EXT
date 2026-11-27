@@ -200,7 +200,7 @@ class FileImportGeneratorTest {
     for (Round round : r) {
       List<Map<String, String>> rows = rows(round.importCsv());
       for (Map<String, String> row : rows) {
-        String num = row.get("x_phone.ph_num");
+        String num = row.get("x_phone.phone_num");
         assertTrue(num.isEmpty() || num.matches("[1-9][0-9]{5}"), num);
         if (!row.get("Address.Source Primary Key").isEmpty()
             && row.get("Address.Operation Type").isEmpty()) {

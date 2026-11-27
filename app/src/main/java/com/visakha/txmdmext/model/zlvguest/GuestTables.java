@@ -49,7 +49,7 @@ public final class GuestTables {
           "business_id",
           "child_id",
           "cntry_cd",
-          "ph_num",
+          "phone_num",
           "ph_typ_cd",
           "ph_typ_nm",
           "no_mrkt_calls",

@@ -40,7 +40,7 @@ final class GuestHashValues {
     switch (row) {
       case GuestChild.Phone p -> {
         m.put("cntry_cd", p.cntryCd());
-        m.put("ph_num", p.phNum());
+        m.put("phone_num", p.phoneNum());
         m.put("ph_typ_cd", code(p.phTyp()));
         m.put("ph_typ_nm", name(p.phTyp()));
         m.put("no_mrkt_calls", p.noMrktCalls());

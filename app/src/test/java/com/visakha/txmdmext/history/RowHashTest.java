@@ -37,10 +37,10 @@ class RowHashTest {
     return c;
   }
 
-  private static Map<String, Object> phone(Long phNum, String typCd) {
+  private static Map<String, Object> phone(String phoneNum, String typCd) {
     Map<String, Object> v = new HashMap<>();
     v.put("cntry_cd", 1L);
-    v.put("ph_num", phNum);
+    v.put("phone_num", phoneNum);
     v.put("ph_typ_cd", typCd);
     v.put("is_deleted", false);
     return v;
@@ -48,9 +48,9 @@ class RowHashTest {
 
   @Test
   void sameValuesGiveTheSameHashEveryTime() {
-    RowHash h = fromConfig(config("cntry_cd,ph_num,ph_typ_cd"));
-    String first = h.md5(PHONE, phone(5125550701L, "Mobile"));
-    String second = h.md5(PHONE, phone(5125550701L, "Mobile"));
+    RowHash h = fromConfig(config("cntry_cd,phone_num,ph_typ_cd"));
+    String first = h.md5(PHONE, phone("5125550701", "Mobile"));
+    String second = h.md5(PHONE, phone("5125550701", "Mobile"));
     assertEquals(first, second);
     assertEquals(32, first.length());
     assertTrue(first.chars().allMatch(c -> Character.isDigit(c) || (c >= 'a' && c <= 'f')));
@@ -58,8 +58,8 @@ class RowHashTest {
 
   @Test
   void knownInputGivesKnownHash() {
-    RowHash h = fromConfig(config("cntry_cd,ph_num,ph_typ_cd"));
-    Map<String, Object> v = phone(5125550701L, "Mobile");
+    RowHash h = fromConfig(config("cntry_cd,phone_num,ph_typ_cd"));
+    Map<String, Object> v = phone("5125550701", "Mobile");
     assertEquals("1|5125550701|Mobile", h.canonical(PHONE, v));
     // md5("1|5125550701|Mobile"), checked with: printf '1|5125550701|Mobile' | md5sum
     assertEquals("8bcd6984786290f2a2d764950e61585b", h.md5(PHONE, v));
@@ -67,24 +67,24 @@ class RowHashTest {
 
   @Test
   void columnOrderChangesTheHash() {
-    Map<String, Object> v = phone(5125550701L, "Mobile");
-    String a = fromConfig(config("cntry_cd,ph_num,ph_typ_cd")).md5(PHONE, v);
-    String b = fromConfig(config("ph_typ_cd,ph_num,cntry_cd")).md5(PHONE, v);
+    Map<String, Object> v = phone("5125550701", "Mobile");
+    String a = fromConfig(config("cntry_cd,phone_num,ph_typ_cd")).md5(PHONE, v);
+    String b = fromConfig(config("ph_typ_cd,phone_num,cntry_cd")).md5(PHONE, v);
     assertNotEquals(a, b);
   }
 
   @Test
   void onlyListedColumnsCount() {
-    RowHash h = fromConfig(config("cntry_cd,ph_num"));
+    RowHash h = fromConfig(config("cntry_cd,phone_num"));
     assertEquals(
-        h.md5(PHONE, phone(5125550701L, "Mobile")), h.md5(PHONE, phone(5125550701L, "Fax")));
+        h.md5(PHONE, phone("5125550701", "Mobile")), h.md5(PHONE, phone("5125550701", "Fax")));
   }
 
   @Test
   void nullAndEmptyTextHashDifferently() {
     RowHash h = fromConfig(config("ph_typ_cd"));
-    assertEquals("\\N", h.canonical(PHONE, phone(1L, null)));
-    assertNotEquals(h.md5(PHONE, phone(1L, null)), h.md5(PHONE, phone(1L, "")));
+    assertEquals("\\N", h.canonical(PHONE, phone("1", null)));
+    assertNotEquals(h.md5(PHONE, phone("1", null)), h.md5(PHONE, phone("1", "")));
   }
 
   @Test
@@ -111,7 +111,7 @@ class RowHashTest {
     RowHash h = TestConfig.exampleRowHash();
     assertEquals(TestConfig.MODEL.hashableColumns().keySet(), h.tables());
     assertEquals(
-        List.of("cntry_cd", "ph_num", "ph_typ_cd", "ph_typ_nm", "no_mrkt_calls", "is_deleted"),
+        List.of("cntry_cd", "phone_num", "ph_typ_cd", "ph_typ_nm", "no_mrkt_calls", "is_deleted"),
         h.columns(PHONE));
   }
 

@@ -38,6 +38,7 @@ final class H2Database {
 
   static final Path V001 = Path.of("..", "ddl", "V001__history_tables.sql");
   static final Path V002 = Path.of("..", "ddl", "V002__zlv_guest_tables.sql");
+  static final Path V003 = Path.of("..", "ddl", "V003__zlv_guest_phone_num.sql");
 
   final DataSource dataSource;
   final JdbcClient jdbc;
@@ -52,6 +53,7 @@ final class H2Database {
 
   H2Database withHistorySchema() {
     run(read(V001));
+    run(read(V003));
     return this;
   }
 

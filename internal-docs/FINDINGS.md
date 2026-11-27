@@ -14,21 +14,21 @@ Read-only review of: Exp_001.dsv.csv, Ora_pub_table_ddl.txt, pub_evt_zlv_guest__
   - JackT: BID 100000000000180, first_name Jack -> JackT
   - Henry: BID 100000000000190, first_name Henry -> Henry T3
   - BID 100000000000171, clns_first_name what -> y this kolavaridhi
-  - UC4 BID 100000000000171, x_phone[d7be8f...].ph_num 12334455 -> 12334455001
+  - UC4 BID 100000000000171, x_phone[d7be8f...].ph_num 12334455 -> 12334455001 (recorded as ph_num, the legacy Integer field; now phone_num)
   - UC5 BID 100000000000160, x_src_address[8ca983...] CREATED (13 field diffs)
 - All are eventType MASTER_UPDATED, impliedOperation UPDATE, user VVamsi-idmcdev.
 
 ## Event JSON (schema 002)
 - Root: businessId, activeBusinessId, assetId (zlv_guest), eventType, impliedOperation, dateOfChange (epoch ms), correlationId, userName, sourceSystem, states {base, validation, createMode}, changedFields[], mergedBusinessIds[].
 - payload = master record AFTER the change. Null fields are left out, so it is sparse.
-- dataDiff[] = field-level old/new. fieldPath carries the child row _id, e.g. x_phone[<_id>].ph_num.
+- dataDiff[] = field-level old/new. fieldPath carries the child row _id, e.g. x_phone[<_id>].phone_num.
 - members[] = sourceSystemId + sourcePKey + businessId of every source record in the master.
 - affectedXrefs[] = which source record changed (xrefType DATA/PATCH/DELETION/ANCHOR, xrefChange, membershipChange ADDED/REMOVED/NONE).
 - UI edits land on a PATCH xref (sourcePKey starts with "ex"). Source field VALUES are not in the event; source history from events alone = membership + xref change only.
 
 ## Business entity zlv_guest (zip)
 - Root fields: first_name, clns_first_name, last_name, clns_last_name, ffr_first_name, ffr_last_name (text 255), do_not_contact_ind (bool), linkedin_url, last_touch_dtm, prev_last_touch_dtm (datetime), touch_incr (double), touch_notes (text), touch_cd (lookup).
-- Many-valued groups (each child row has _id): x_phone (cntry_cd int, ph_num int, ph_typ lookup, no_mrkt_calls bool); Address (OOTB, 23 fields); x_src_address (13 fields, postal_cd int); x_alt_id (7 fields, start_date date).
+- Many-valued groups (each child row has _id): x_phone (cntry_cd int, phone_num TEXT, ph_typ lookup, no_mrkt_calls bool; ph_num int is LEGACY, do not use - replaced by phone_num 2026-11-27); Address (OOTB, 23 fields); x_src_address (13 fields, postal_cd int); x_alt_id (7 fields, start_date date).
 - Lookups arrive as {Code, Name}.
 
 ## Proposed tables (not written yet)

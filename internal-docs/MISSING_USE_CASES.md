@@ -2,7 +2,7 @@
 
 Covered so far (all impliedOperation UPDATE, eventType MASTER_UPDATED):
 - UC1-3 root field edits (first_name, clns_first_name)
-- UC4 child row edit (x_phone ph_num)
+- UC4 child row edit (x_phone phone_num; originally tested on legacy ph_num)
 - UC5 child row add (x_src_address CREATED)
 
 Sources: every source-driven case below is run TWICE - once for zlv_ttf and once for zlv_eci (internal IDs, all lowercase; confirmed in the BE zip). UI edits land on c360.default.system (PATCH xref) and are listed once. Label samples like UC7-ttf, UC7-eci.

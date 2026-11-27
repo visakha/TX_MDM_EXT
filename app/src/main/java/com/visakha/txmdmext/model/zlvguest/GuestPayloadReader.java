@@ -53,7 +53,7 @@ final class GuestPayloadReader {
           new GuestChild.Phone(
               id,
               whole(r, "cntry_cd"),
-              whole(r, "ph_num"),
+              text(r, "phone_num"),
               lookup(r, "ph_typ"),
               bool(r, "no_mrkt_calls"));
       case X_SRC_ADDRESS ->

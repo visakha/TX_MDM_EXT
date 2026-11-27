@@ -12,7 +12,7 @@ public sealed interface GuestChild extends ChildRow {
   FieldGroup group();
 
   /** x_phone row. */
-  record Phone(String childId, Long cntryCd, Long phNum, Lookup phTyp, Boolean noMrktCalls)
+  record Phone(String childId, Long cntryCd, String phoneNum, Lookup phTyp, Boolean noMrktCalls)
       implements GuestChild {
     @Override
     public FieldGroup group() {

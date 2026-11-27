@@ -30,7 +30,7 @@ public final class FileImportCsv {
           "x_phone.Source Primary Key",
           "x_phone.ph_typ",
           "x_phone.cntry_cd",
-          "x_phone.ph_num",
+          "x_phone.phone_num",
           "Address.Operation Type",
           "Address.Source Primary Key",
           "Address.addressType",
@@ -146,7 +146,7 @@ public final class FileImportCsv {
     row.put("x_phone.Source Primary Key", p.key());
     row.put("x_phone.ph_typ", p.type());
     row.put("x_phone.cntry_cd", Integer.toString(p.countryCode()));
-    row.put("x_phone.ph_num", Integer.toString(p.number()));
+    row.put("x_phone.phone_num", Integer.toString(p.number()));
   }
 
   private static void address(Map<String, String> row, String root, Address a) {

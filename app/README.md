@@ -22,6 +22,9 @@ Which DDL to run (by hand; CREATE only, nothing is ever dropped):
   The old unprefixed `EVT_*` tables are left untouched and empty; the app no longer writes
   to them. Removing them is your / the DBA's call, by hand.
 - A fresh schema: run `ddl/V001__history_tables.sql` (same 9 tables). Do not run both.
+- Then, in EITHER case, run `ddl/V003__zlv_guest_phone_num.sql` once. It only ADDs the
+  text column `phone_num` to `EVT_ZLV_GUEST_MASTER_PHONE_HIST`. The app reads and writes
+  `phone_num` (B360 x_phone.phone_num, TEXT); the old Integer `ph_num` column stays, unused.
 
 ## Package layout: generic engine + one package per model
 

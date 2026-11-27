@@ -27,7 +27,7 @@ A zlv_guest master record has:
 
 - Root fields: one value each. first_name, last_name, touch_notes, etc.
 - Field groups: lists of child entries, zero to many each.
-  - x_phone       (ph_typ, cntry_cd, ph_num)
+  - x_phone       (ph_typ, cntry_cd, phone_num)
   - Address       (addressType, addressLine1, city, state, postalCode, country)
   - x_src_address (address_line_1, city, state_cd, postal_cd, country_cd,
                    address_typ, address_status_cd)
@@ -41,7 +41,7 @@ Relations:
 - Child entry -> parent. Every child entry is identified by its own
   Source Primary Key inside its group (for example FI-UC-3-PH-2). MDM keeps
   that key as the child row's _id, and the events show it in
-  dataDiff fieldPath, e.g. x_phone[FI-UC-3-PH-2].ph_num. (VERIFIED)
+  dataDiff fieldPath, e.g. x_phone[FI-UC-3-PH-2].phone_num. (VERIFIED on legacy ph_num)
 - Groups are independent. A guest can have 3 phones, 0 addresses and
   2 alt ids. One group does not depend on another.
 
@@ -59,12 +59,14 @@ Rules (VERIFIED unless marked):
 - Each field group needs its own Source Primary Key column
   (x_phone.Source Primary Key, Address.Source Primary Key, ...).
 - Address needs country.
-- ph_num is an Integer field. Long numbers fail with "invalid format".
-  10 digits failed; 6 digits worked. Keep test numbers short.
+- ph_num is LEGACY (Integer). Do not use it. Long numbers failed with
+  "invalid format" (10 digits failed, 6 worked) and an 11-digit value
+  rejected a whole file.
 - NEW FIELD (Vamsi, 2026-11-27): x_phone.phone_num, TEXT type, added because
   the Integer ph_num rejected the whole 4a file on an 11-digit number.
-  Use phone_num in all file imports from round 4 on; ph_num is legacy.
-  Round 4a/4b CSV headers now use x_phone.phone_num.
+  Use phone_num in ALL file imports; never ph_num. Every CSV in this
+  folder (rounds 1-4 and generated/) now uses x_phone.phone_num.
+  ph_num is no longer required in B360 (Vamsi removed the flag).
 - Lookup fields must use codes that exist in Reference 360
   (internal-docs/LOOKUPS.md). Codes are case sensitive (VoIP, EMP ID).
 
@@ -79,7 +81,7 @@ child counts.)
 
 Example (one guest, 2 phones, 1 address):
 
-    Source Primary Key,Source Last Update Date,first_name,last_name,x_phone.Source Primary Key,x_phone.ph_typ,x_phone.cntry_cd,x_phone.ph_num,Address.Source Primary Key,Address.addressLine1,Address.city,Address.country
+    Source Primary Key,Source Last Update Date,first_name,last_name,x_phone.Source Primary Key,x_phone.ph_typ,x_phone.cntry_cd,x_phone.phone_num,Address.Source Primary Key,Address.addressLine1,Address.city,Address.country
     G-1,2026-11-27 09:00:00,Ann,Test,G-1-PH-1,Mobile,1,550001,G-1-AD-1,1 Test Ln,Austin,US
     G-1,2026-11-27 09:00:00,Ann,Test,G-1-PH-2,Fax,1,550002,,,,
 

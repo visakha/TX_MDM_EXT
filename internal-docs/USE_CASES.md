@@ -42,7 +42,7 @@ IMPORTANT
 
 ## UC7-ttf  CREATE via zlv_ttf
 1. Use case: new guest 100000000000172, source zlv_ttf pkey EVT-UC7-TTF-1, first_name
-   EvtTest, last_name UC7ttf, 1 phone (cntry_cd 1, ph_num 5125550701, ph_typ Mobile,
+   EvtTest, last_name UC7ttf, 1 phone (cntry_cd 1, phone_num 5125550701, ph_typ Mobile,
    _id 479cb3c697d943699bf266ca9a23a89e).
    touch_notes: "UC7-ttf CREATE via source zlv_ttf - Muse test 2026-11-27"
 2. API: POST /api/b360/entities/zlv_guest/records
@@ -60,7 +60,7 @@ IMPORTANT
    EVT_XREF_CHANGE 1 row. EVT_FIELD_CHANGE 0..n (CREATED diffs if sent).
 
 ## UC7-eci  CREATE via zlv_eci
-1. 100000000000192, zlv_eci EVT-UC7-ECI-1, last_name UC7eci, 1 phone ph_num 5125550702
+1. 100000000000192, zlv_eci EVT-UC7-ECI-1, last_name UC7eci, 1 phone phone_num 5125550702
    Mobile (_id 7ddf5b15d8e24f468ecbc53c60c5f812).
    touch_notes: "UC7-eci CREATE via source zlv_eci - Muse test 2026-11-27"
 2. API: POST /api/b360/entities/zlv_guest/records, source_system=zlv_eci, same shape.
@@ -128,8 +128,8 @@ Oracle for ALL: 1 event row; EVT_MASTER_HIST closes the open row for the bid
 
 ## UC17-ttf  add second phone via zlv_ttf (172)
 - touch_notes: "UC17-ttf ADD second x_phone row via source zlv_ttf - Muse test 2026-11-27"
-- New row _id 2dca242eedb34fa98eacbaa17dd87212: cntry_cd 1, ph_num 5125550711, ph_typ Mobile.
-- dataDiff CREATED x_phone[2dca242e...]._id/cntry_cd/ph_num/ph_typ.Code(/Name).
+- New row _id 2dca242eedb34fa98eacbaa17dd87212: cntry_cd 1, phone_num 5125550711, ph_typ Mobile.
+- dataDiff CREATED x_phone[2dca242e...]._id/cntry_cd/phone_num/ph_typ.Code(/Name).
 - Oracle: EVT_MASTER_PHONE_HIST open row (172, 2dca242e...); first phone row untouched.
 
 ## UC16-ttf  remove that phone via zlv_ttf (172)

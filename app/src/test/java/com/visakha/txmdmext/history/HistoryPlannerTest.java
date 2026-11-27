@@ -114,6 +114,6 @@ class HistoryPlannerTest {
     InMemoryHistory.ChildEvent last =
         history.childEventsOf("100000000000172", "2dca242eedb34fa98eacbaa17dd87212").getLast();
     assertTrue(last.version().deleted());
-    assertEquals(5125550711L, ((GuestChild.Phone) last.version().row()).phNum());
+    assertEquals("5125550711", ((GuestChild.Phone) last.version().row()).phoneNum());
   }
 }

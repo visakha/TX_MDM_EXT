@@ -62,7 +62,7 @@ class ZlvGuestModelTest {
             .masterRow(Fixtures.orderedEvents().getFirst(), Instant.EPOCH);
     Map<String, List<String>> known = model.hashableColumns();
     assertEquals(known.get(GuestTables.MASTER), List.copyOf(GuestHashValues.master(m).keySet()));
-    assertChild(known, new GuestChild.Phone("x", 1L, 2L, null, null));
+    assertChild(known, new GuestChild.Phone("x", 1L, "2", null, null));
     assertChild(
         known,
         new GuestChild.SrcAddress(

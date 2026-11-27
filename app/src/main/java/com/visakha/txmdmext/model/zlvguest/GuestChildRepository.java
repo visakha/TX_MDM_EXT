@@ -23,7 +23,7 @@ public class GuestChildRepository implements ChildStore {
 
   static final String OPEN_PHONES =
       """
-      SELECT child_id, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls, row_md5
+      SELECT child_id, cntry_cd, phone_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls, row_md5
         FROM %s
        WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
       """
@@ -95,10 +95,10 @@ public class GuestChildRepository implements ChildStore {
   static final String INSERT_PHONE =
       """
       INSERT INTO %s (
-        business_id, child_id, id01, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls,
+        business_id, child_id, id01, cntry_cd, phone_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls,
         is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
-        :businessId, :childId, :id01, :cntryCd, :phNum, :phTypCd, :phTypNm, :noMrktCalls,
+        :businessId, :childId, :id01, :cntryCd, :phoneNum, :phTypCd, :phTypNm, :noMrktCalls,
         :isDeleted, :rowMd5, :validFrom, NULL, 1)
       """
           .formatted(GuestTables.MASTER_PHONE);
@@ -191,7 +191,7 @@ public class GuestChildRepository implements ChildStore {
           new GuestChild.Phone(
               id,
               whole(rs, "cntry_cd"),
-              whole(rs, "ph_num"),
+              rs.getString("phone_num"),
               lookup(rs, "ph_typ_cd", "ph_typ_nm"),
               bool(rs, "no_mrkt_calls"));
       case X_SRC_ADDRESS ->
@@ -299,7 +299,7 @@ public class GuestChildRepository implements ChildStore {
           case GuestChild.Phone p ->
               jdbc.sql(INSERT_PHONE)
                   .param("cntryCd", p.cntryCd(), Types.BIGINT)
-                  .param("phNum", p.phNum(), Types.BIGINT)
+                  .param("phoneNum", p.phoneNum(), Types.VARCHAR)
                   .param("phTypCd", code(p.phTyp()), Types.VARCHAR)
                   .param("phTypNm", name(p.phTyp()), Types.VARCHAR)
                   .param("noMrktCalls", DbTime.flag(p.noMrktCalls()), Types.INTEGER);
