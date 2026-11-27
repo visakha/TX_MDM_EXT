@@ -159,3 +159,31 @@ Restore of a deleted source record is also an operation (DOCS, not tested).
 
 Use touch_notes to label each record with its use case (for example
 "UC-FI3-R2 del Mobile PH-1"). It is our field for test notes.
+
+## 8. Random test generator (TX_MDM_EXT app)
+
+To repeat the exercise with fresh data, the app can write a new set of round files plus the
+expected result of each round. Same seed = same files, so a teammate can rebuild exactly the
+files you used.
+
+    cd TX_MDM_EXT\app
+    mvn -B -DskipTests package
+    .\generate-file-import.ps1 -Seed 101 -Guests 5 -OutDir C:\tx-mdm-ext\file-import
+
+It writes into C:\tx-mdm-ext\file-import\RG-101\:
+
+- zlv_guest_RG-101_round1.csv - creates (random 0..3 phones, addresses, alt ids).
+- zlv_guest_RG-101_round2.csv - adds and edits (phone type, zip) on the same guests.
+- zlv_guest_RG-101_round3.csv - deletes only, one per row, root Operation Type = Patch.
+- zlv_guest_RG-101_roundN_expected.csv - per guest the child keys and counts after round N.
+
+Give each teammate their own seed: the guest keys are RG-<seed>-<n>, so runs do not collide
+with each other or with the FI-UC-* guests. All files share one header, so save the wizard
+mapping once and reuse it.
+
+Steps per round: import the CSV under zlv_ttf (round 3: "Update only fields containing data",
+empty fields unchanged), run the publish job, extract, and compare each guest's phones /
+addresses / alt ids in the event payload with the round's _expected.csv.
+
+The generator only writes files. It does not import, publish or touch any database.
+Round 3 (the delete layout) is still pending verification in our org - see Section 5.

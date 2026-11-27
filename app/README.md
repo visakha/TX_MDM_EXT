@@ -175,6 +175,7 @@ No mocking framework. Fixtures are the real 44 rows / 36 events of
 | `UseCaseTest` | one test per use case of USE_CASES.md and the 5 older samples |
 | `it/H2HistoryIT` | end to end on H2 (MODE=Oracle): real V001, real SQL, real rows checked |
 | `it/H2RerunIT` | second run adds nothing, reprocessing adds nothing, bad rows, V002 beside the old tables |
+| `model/zlvguest/fileimport/FileImportGeneratorTest` | file import generator: same seed same files, ASCII / no quotes / CRLF, files match expected, round 3 one delete per row, lookups in LOOKUPS.md, dates increase |
 | `model/zlvguest/ZlvGuestModelTest` | prefix on all 9 tables, tables in both DDL files, hash columns, engine stays guest-free |
 | `store/SqlNamesTest` | only plain Oracle identifiers get into SQL text |
 | `web/HeartbeatTest` | heartbeat built from the scan status; GET /api/heartbeat through MockMvc |
@@ -184,6 +185,48 @@ The H2 tests create a fresh in-memory database per test class and apply
 `ZLV_MDM_EVENTS_STORE` (`src/test/resources/db/`). Nothing is dropped or deleted, even there.
 H2 is a test-scope dependency only.
 
+## File import test generator
+
+Seeded random test files for the Business 360 File Import of zlv_guest, three rounds on the
+same guests, as in `internal-docs/file-import/` (see `FILE_IMPORT_USER_GUIDE.md` there):
+
+- round 1: creates. N guests, each with 0..3 phones, 0..3 addresses, 0..3 alt ids
+  (cross-product rows).
+- round 2: in-place adds and edits on the same guests (phone type, zip), no deletes.
+- round 3: deletes only, one deleted entry per row, root `Operation Type` = `Patch` with the
+  guest's current root values, the group's `Operation Type` = `Delete`.
+- per round an `_expected.csv`: per guest the child keys, counts and values after that round,
+  to check the publish-events extract against.
+
+Plain Java main (`model.zlvguest.fileimport.FileImportGeneratorMain`): no Spring, no database,
+no scan job. Same seed and options = the same files. Files are never overwritten; a second
+run into the same folder stops with an error.
+
+```powershell
+cd C:\path\to\TX_MDM_EXT\app
+mvn -B -DskipTests package
+.\generate-file-import.ps1 -Seed 42 -Guests 5 -OutDir C:\tx-mdm-ext\file-import
+```
+
+Same thing without the script:
+
+```powershell
+java -cp target\classes com.visakha.txmdmext.model.zlvguest.fileimport.FileImportGeneratorMain --seed=42 --guests=5 --rounds=3 --base-date=2026-11-01 --out-dir=C:\tx-mdm-ext\file-import
+```
+
+| Option | Default | What |
+|---|---|---|
+| `--seed` | 42 | Random seed; also the key prefix `RG-<seed>-<n>` (no clash with `FI-UC-*`) |
+| `--guests` | 5 | 1..500 |
+| `--rounds` | 3 | 1..3 |
+| `--base-date` | 2026-11-01 | Round 1 dates fall in the 3 years before it; round 2 = +1 day, round 3 = +2 days |
+| `--out-dir` | `file-import-out` | Files go to `<out-dir>\RG-<seed>\` |
+
+Output: `zlv_guest_RG-<seed>_round<n>.csv` and `zlv_guest_RG-<seed>_round<n>_expected.csv`.
+All files use the same 32-column header (root `Operation Type` first), so one saved wizard
+mapping fits every round. Rounds 1 and 2 leave every Operation Type blank (the wizard choice
+applies, as in the verified rounds); only round 3 fills them.
+
 ## Layout
 
 | Package | What |
@@ -191,6 +234,7 @@ H2 is a test-scope dependency only.
 | `config` | `AppProperties` (all `txmdmext.*` settings), bean wiring |
 | `model` | `EntityModel`, `ChildGroup`, `ChildRow`, `EntityRoot`: what the engine needs from a model |
 | `model.zlvguest` | zlv_guest only: records, payload reader, table names, hash input, master/child repositories |
+| `model.zlvguest.fileimport` | File import test generator (plain main, no Spring) |
 | `event` | Records and enums of the event JSON, parser, dedupe and ordering |
 | `history` | Pure Java: `HistoryPlanner` (event + prior state -> rows), `RowHash` (row_md5) |
 | `store` | Event store, field change, membership/xref, idempotency repositories (`JdbcClient`); `MasterStore` / `ChildStore` interfaces |

@@ -1,0 +1,6 @@
+Source Primary Key,first_name,last_name,touch_notes,phone_count,phone_keys,address_count,address_keys,src_address_keys,alt_id_count,alt_id_keys,phones,addresses,alt_ids
+RG-42-1,Ana,Rgbeta,UC-RG1-R3 delete AI-1 PH-2,2,RG-42-1-PH-1;RG-42-1-PH-3,1,RG-42-1-AD-1,RG-42-1-SA-1,2,RG-42-1-AI-2;RG-42-1-AI-3,Mobile/448884;VoIP/855741,921 Test Ln/Austin/78702/AM2,Passport/P2626039;DL/TXDL121460
+RG-42-2,Hal,Rggamma,UC-RG2-R3 delete PH-2,1,RG-42-2-PH-1,2,RG-42-2-AD-1;RG-42-2-AD-2,RG-42-2-SA-1;RG-42-2-SA-2,2,RG-42-2-AI-1;RG-42-2-AI-2,VoIP/615241,587 Sample Rd/Leander/78641/PA;481 Demo St/Round Rock/78664/AM2,DL/TXDL577233;SSN/000953754
+RG-42-3,Jon,Rgomega,UC-RG3-R3 delete AI-1,0,,2,RG-42-3-AD-1;RG-42-3-AD-2,RG-42-3-SA-1;RG-42-3-SA-2,0,,,558 Sample Rd/Austin/78731/MA;585 Sample Rd/Pflugerville/78691/CR,
+RG-42-4,Finn,Rgdelta,UC-RG4-R3 delete AD-3 AI-1,0,,2,RG-42-4-AD-1;RG-42-4-AD-2,RG-42-4-SA-1;RG-42-4-SA-2,1,RG-42-4-AI-2,,419 Test Ln/Leander/78645/MA;653 Check Dr/Round Rock/78665/AM1,EMP ID/EMP9763
+RG-42-5,Cara,Rgalpha,UC-RG5-R3 delete AD-4,3,RG-42-5-PH-1;RG-42-5-PH-2;RG-42-5-PH-3,3,RG-42-5-AD-1;RG-42-5-AD-2;RG-42-5-AD-3,RG-42-5-SA-1;RG-42-5-SA-2;RG-42-5-SA-3,1,RG-42-5-AI-1,VoIP/145476;VoIP/529870;Fax/177532,311 Check Dr/Leander/78641/MA;846 Check Dr/Georgetown/78626/PA;670 Sample Rd/Round Rock/78681/PA,SSN/000688322
