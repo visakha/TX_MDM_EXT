@@ -113,9 +113,14 @@ What we saw (VERIFIED):
 
 ### Deleting child entries
 
-- Put the delete on its OWN row: root Source Primary Key, the group's
-  Source Primary Key of the entry to remove, and Delete in that group's
-  Operation Type. Leave everything else blank. (DOCS example layout)
+- Put the delete on its OWN row: root Operation Type = Patch, root
+  Source Primary Key, Source Last Update Date, the guest's CURRENT root
+  values (first_name, last_name, touch_notes - same on every row of that
+  guest), the group's Source Primary Key of the entry to remove, and
+  Delete in that group's Operation Type. Leave the other groups blank.
+- There is a root-level Operation Type column (header "Operation Type")
+  as well as one per group. Root = Patch keeps the guest; root = Delete
+  removes the whole source record.
 - One deletion per row. Address and x_src_address are separate groups, so
   removing "the same" address from both takes two rows.
 - Use the wizard choice "Update only fields containing data" with empty
