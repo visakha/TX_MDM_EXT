@@ -1,0 +1,12 @@
+DROP table ZLV_MDM_EVENTS_STORE;
+CREATE TABLE ZLV_MDM_EVENTS_STORE (
+    id01            VARCHAR2(255) NOT NULL, -- Numeric identifier
+    evt_dtm         NUMBER(19) NULL,        -- Event date/time (epoch or numeric)
+    evt_dtm_tmz     TIMESTAMP NULL,         -- Event date/time (no timezone)
+    payload         CLOB NOT NULL,           -- Large text payload (up to 16 MB)
+    processed_dtm    TIMESTAMP      NULL
+);
+
+
+select * from all_tables where table_name like '%ZLV_MDM_EVENTS_STORE%'; -- found 1
+select * from ZLV_MDM_EVENTS_STORE;

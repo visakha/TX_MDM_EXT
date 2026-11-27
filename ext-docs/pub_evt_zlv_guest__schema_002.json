@@ -1,0 +1,211 @@
+{
+  "type": "object",
+  "id": "pub_evt_zlv_guest_:default",
+  "properties": {
+    "activeBusinessId": {
+      "title": "Active Business ID",
+      "description": "Business ID of the currently consumable master (leader).",
+      "type": "string"
+    },
+    "affectedXrefs": {
+      "title": "Affected XREFs",
+      "description": "Source Records that were affected by the operation.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:com:informatica:mdm:bes:service:event:phase2:XrefInsight",
+        "properties": {
+          "sourceSystemId": {
+            "type": "string"
+          },
+          "sourcePKey": {
+            "type": "string"
+          },
+          "businessId": {
+            "type": "string"
+          },
+          "xrefType": {
+            "type": "string",
+            "enum": [
+              "DATA",
+              "PATCH",
+              "DELETION",
+              "ANCHOR"
+            ]
+          },
+          "xrefChange": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "UPDATED",
+              "DELETED",
+              "RESTORED",
+              "PURGED",
+              "VALIDATED",
+              "NONE"
+            ]
+          },
+          "membershipChange": {
+            "type": "string",
+            "enum": [
+              "ADDED",
+              "REMOVED",
+              "NONE"
+            ]
+          }
+        }
+      }
+    },
+    "assetId": {
+      "title": "Asset Internal ID",
+      "description": "Unique identifier of the asset, such as a business entity. For example, the ID of the predefined Organization business entity in Customer 360 SaaS is c360.organization",
+      "type": "string"
+    },
+    "assetType": {
+      "title": "Asset Type",
+      "description": "Type of the asset such as BUSINESS_ENTITY or RELATIONSHIP",
+      "type": "string",
+      "enum": [
+        "BUSINESS_ENTITY",
+        "RELATIONSHIP"
+      ]
+    },
+    "businessId": {
+      "title": "Business ID",
+      "description": "Record identifier",
+      "type": "string"
+    },
+    "changedFields": {
+      "title": "Changed Fields",
+      "description": "Fields affected by this operation",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "correlationId": {
+      "title": "Correlation ID",
+      "description": "Records changed together in same call will have same correlation ID.",
+      "type": "string"
+    },
+    "dataDiff": {
+      "title": "Data Diff",
+      "description": "Changes in record payload.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:com:informatica:mdm:bes:service:event:phase2:FieldChange",
+        "properties": {
+          "fieldPath": {
+            "type": "string",
+            "description": "Path to modified field."
+          },
+          "changeType": {
+            "type": "string",
+            "description": "What happened to the field.",
+            "enum": [
+              "CREATED",
+              "DELETED",
+              "UPDATED"
+            ]
+          },
+          "oldValue": {
+            "type": "object",
+            "id": "urn:jsonschema:java:lang:Object",
+            "description": "Field value BEFORE operation was executed."
+          },
+          "newValue": {
+            "type": "object",
+            "$ref": "urn:jsonschema:java:lang:Object",
+            "description": "Field value AFTER operation was executed."
+          }
+        }
+      }
+    },
+    "dateOfChange": {
+      "title": "Date Of Change",
+      "description": "When record was changed.",
+      "type": "integer"
+    },
+    "eventType": {
+      "title": "Event Type",
+      "description": "Type of event, such as created, updated, deleted, etc.",
+      "type": "string"
+    },
+    "impliedOperation": {
+      "title": "Implied Operation",
+      "description": "The original operation that caused record changes",
+      "type": "string",
+      "enum": [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "RESTORE",
+        "MERGE",
+        "UNMERGE",
+        "PURGE",
+        "TRUST_OVERRIDE",
+        "VALIDATE",
+        "UNKNOWN"
+      ]
+    },
+    "members": {
+      "title": "Members",
+      "description": "Source Records that contribute to the master.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:com:informatica:mdm:bes:core:records:api:event:Member",
+        "properties": {
+          "sourceSystemId": {
+            "type": "string"
+          },
+          "sourcePKey": {
+            "type": "string"
+          },
+          "businessId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mergedBusinessIds": {
+      "title": "Merged Business IDs",
+      "description": "Business ID that were merged.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "payload": {
+      "title": "Payload",
+      "description": "Master Record payload"
+    },
+    "sourceSystem": {
+      "title": "Source System Internal ID",
+      "description": "Internal ID of the source system where the event occurred. For example, if the event occurred in Customer 360 SaaS, the internal ID is c360.default.system.",
+      "type": "string"
+    },
+    "states": {
+      "title": "Record States",
+      "description": "Record states after operation",
+      "type": "object",
+      "id": "urn:jsonschema:com:informatica:mdm:bes:service:event:phase2:RecordStates",
+      "properties": {
+        "base": {
+          "type": "string",
+          "description": "Base record state."
+        },
+        "validation": {
+          "type": "string",
+          "description": "Validation state."
+        }
+      }
+    },
+    "userName": {
+      "title": "User Name",
+      "description": "Name of the user who triggered the event. Example: john and john.smith@abc.com.",
+      "type": "string"
+    }
+  }
+}
