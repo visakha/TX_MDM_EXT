@@ -37,3 +37,11 @@ Read-only review of: Exp_001.dsv.csv, Ora_pub_table_ddl.txt, pub_evt_zlv_guest__
 - EVT_FIELD_CHANGE: one row per dataDiff entry (field path, child _id, change type, old, new).
 - EVT_MEMBER_HIST: master-source membership, Type 2.
 - EVT_XREF_CHANGE: one row per affectedXref per event.
+
+## Schema 002 vs the real events (checked 2026-11-27)
+- All 17 top-level properties in the schema appear in the events, and the events add none.
+- states: the events also carry createMode (REGULAR). The schema lists only base and validation.
+- payload has no type in the schema, so the master record's shape comes from the zlv_guest business entity, not the schema.
+- dataDiff oldValue/newValue are typed as plain Object: they can be a string, a number or anything else, so we store them as text.
+- Enums to honor: xrefType, xrefChange, membershipChange, changeType, impliedOperation (includes MERGE, UNMERGE, TRUST_OVERRIDE), assetType.
+- mergedBusinessIds and members will drive merge/unmerge history; all 5 samples are UPDATEs, so no merge or unmerge sample yet.
