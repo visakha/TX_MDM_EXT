@@ -9,3 +9,5 @@ Muse's working notes for TX_MDM_EXT. Decisions, what is proven, what is next.
   - UC4: business ID ending 0171 - edited an existing phone number (phone field group).
   - UC5: business ID ending 0160 - added an address (address field group).
   He runs the publish job himself to land these in ZLV_MDM_EVENTS_STORE, then uploads the JSON.
+- 2026-11-26 23:52: publish run returned 8 rows (3 earlier rows kept from repeated Custom runs + 5 new). Vamsi is switching the publish job to STANDARD mode from now on.
+- Dedupe rule (Vamsi): the same event can land more than once in ZLV_MDM_EVENTS_STORE when the publish window overlaps. Dedupe on ID01 - if an ID01 appears more than once, keep one. Applies to the Oracle extract he sends AND to the app's read of the event store.
