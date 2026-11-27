@@ -1,0 +1,34 @@
+# TX_MDM_EXT external configuration - EXAMPLE ONLY.
+# Copy this file OUTSIDE the repo (for example C:\tx-mdm-ext\application.properties),
+# fill in the real values there, and never commit the filled-in copy.
+# Run with:  java -jar tx-mdm-ext-0.1.0.jar --spring.config.location=file:C:/tx-mdm-ext/application.properties
+
+# --- Oracle (schema that holds ZLV_MDM_EVENTS_STORE and the EVT_* tables) ---
+spring.datasource.url=jdbc:oracle:thin:@//<host>:<port>/<service_name>
+spring.datasource.username=<oracle_user>
+spring.datasource.password=<oracle_password>
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+# HARD RULE: the app never runs DDL. Run ddl/V001__history_tables.sql by hand first.
+spring.sql.init.mode=never
+
+# --- Schedule (Spring cron: sec min hour day month weekday). Default: every hour at :05 ---
+txmdmext.schedule.cron=0 5 * * * *
+# true = one pass and exit (good for a first test); false = stay up and run on the schedule
+txmdmext.run-once=true
+# Max event-store rows read per pass
+txmdmext.batch-size=1000
+# Zone used to turn event epoch-ms into TIMESTAMP values in the EVT_* tables
+txmdmext.zone=UTC
+
+# --- IDMC publish-job kick-off (OFF by default; leave false until tested) ---
+txmdmext.idmc.enabled=false
+txmdmext.idmc.login-url=https://<pod>.informaticacloud.com
+txmdmext.idmc.mdm-url=https://<region>-mdm.<pod>.informaticacloud.com
+txmdmext.idmc.username=<idmc_user>
+txmdmext.idmc.password=<idmc_password>
+# {kind} part of /job/public/api/v1/jobInstance/{kind} for a publish job - UNVERIFIED
+txmdmext.idmc.publish-job-kind=<kind>
+txmdmext.idmc.publish-job-definition-id=<job_definition_id>
+
+logging.level.com.visakha.txmdmext=INFO
