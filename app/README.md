@@ -200,3 +200,14 @@ the `GuestTables` constants (`"""...FROM %s...""".formatted(GuestTables.MASTER)`
 repositories (field change, membership, xref, idempotency) take the names from `EntityModel` at
 startup and check each with `SqlNames.table` (plain `A-Z 0-9 _` identifier, max 128). Names come
 from code constants, never from input or properties. No reflection, no ORM.
+
+## Log file location
+
+The log folder is configurable in your external application.properties:
+
+    txmdmext.log-dir=C:/tx-mdm-ext/logs
+    logging.file.name=${txmdmext.log-dir}/tx-mdm-ext.log
+
+Point txmdmext.log-dir at any folder you like; the log is written to tx-mdm-ext.log in that
+folder (rolled at 10 MB, 30 files kept). Use forward slashes on Windows. You can also
+override it for one run on the command line: --txmdmext.log-dir=D:/somewhere/logs
