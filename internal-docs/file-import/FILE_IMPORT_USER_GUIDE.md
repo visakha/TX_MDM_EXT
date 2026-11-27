@@ -182,14 +182,14 @@ Restore of a deleted source record is also an operation (DOCS, not tested).
 | R4 | R4-3 | lookup value not on the list | VERIFIED 2026-11-27: NOT rejected - PH-9 saved with ph_typ.Code Mobil and no ph_typ.Name (valid codes like Mobile carry a Name). Whether MDM flags it as a validation error: open, Vamsi checking |
 | R4 | R4-4 | phone number too long | PARTIAL 2026-11-27: PH-8 row landed (ph_num 123) but phone_num missing from the event - likely not mapped in the wizard, unconfirmed |
 | R4 | R4-5 | no-op re-send, same values and date | VERIFIED 2026-11-27: no event |
-| R4 | R4-6 | same key from zlv_eci | pending |
+| R4 | R4-6 | same key from zlv_eci | VERIFIED 2026-11-27 (extract_20261127_111347): new master BID 302, xref zlv_eci; key is source-scoped, BID 200 untouched |
 | R4 | R4-7 | whole-file rerun (optional) | pending |
-| R4 | R4-8 | full ECI guest, phone_num mapped | pending |
-| R4 | R4-9 | phone_num leading zero kept | pending |
-| R4 | R4-10 | ECI look-alike of TTF guest | pending |
-| R4 | R4-11 | lookup in wrong case | pending |
-| R4 | R4-12 | root fields only | pending |
-| R4 | R4-13 | two phones on two rows | pending |
+| R4 | R4-8 | full ECI guest, phone_num mapped | VERIFIED 2026-11-27 (extract_20261127_111347): BID 300, all four groups landed, phone_num 5125550101 present |
+| R4 | R4-9 | phone_num leading zero kept | VERIFIED 2026-11-27 (extract_20261127_111347): BID 304, phone_num '02079460000' kept as text |
+| R4 | R4-10 | ECI look-alike of TTF guest | VERIFIED 2026-11-27 (extract_20261127_111347): separate master BID 303, no merge at import |
+| R4 | R4-11 | lookup in wrong case | VERIFIED 2026-11-27 (extract_20261127_111347): BID 305 saved with ph_typ.Code 'mobile', no Name, record validation FAILED - lookups are case-sensitive |
+| R4 | R4-12 | root fields only | VERIFIED 2026-11-27 (extract_20261127_111347): BID 301 created with root fields only |
+| R4 | R4-13 | two phones on two rows | VERIFIED 2026-11-27 (extract_20261127_111347): one master BID 306 with both phones |
 
 Use touch_notes to label each record with its use case (for example
 "UC-FI3-R2 del Mobile PH-1"). It is our field for test notes.
