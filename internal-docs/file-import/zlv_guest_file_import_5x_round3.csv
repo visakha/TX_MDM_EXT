@@ -1,0 +1,10 @@
+Source Primary Key,Source Last Update Date,first_name,last_name,touch_notes,x_phone.Operation Type,x_phone.Source Primary Key,x_phone.ph_typ,x_phone.cntry_cd,x_phone.ph_num,Address.Operation Type,Address.Source Primary Key,Address.addressType,Address.addressLine1,Address.city,Address.state,Address.postalCode,Address.country,x_src_address.Operation Type,x_src_address.Source Primary Key,x_src_address.address_line_1,x_src_address.city,x_src_address.state_cd,x_src_address.postal_cd,x_src_address.country_cd,x_src_address.address_typ,x_src_address.address_status_cd,x_alt_id.Operation Type,x_alt_id.Source Primary Key,x_alt_id.alt_id_typ,x_alt_id.alt_id_val
+FI-UC-1,,,,,Delete,FI-UC-1-PH-2,,,,,,,,,,,,,,,,,,,,,,,,
+FI-UC-2,,,,,,,,,,Delete,FI-UC-2-AD-2,,,,,,,,,,,,,,,,,,,
+FI-UC-2,,,,,,,,,,,,,,,,,,Delete,FI-UC-2-SA-2,,,,,,,,,,,
+FI-UC-3,,,,,Delete,FI-UC-3-PH-1,,,,,,,,,,,,,,,,,,,,,,,,
+FI-UC-3,,,,,,,,,,,,,,,,,,,,,,,,,,,Delete,FI-UC-3-AI-2,,
+FI-UC-4,,,,,Delete,FI-UC-4-PH-3,,,,,,,,,,,,,,,,,,,,,,,,
+FI-UC-4,,,,,,,,,,,,,,,,,,,,,,,,,,,Delete,FI-UC-4-AI-2,,
+FI-UC-5,,,,,,,,,,Delete,FI-UC-5-AD-3,,,,,,,,,,,,,,,,,,,
+FI-UC-5,,,,,,,,,,,,,,,,,,Delete,FI-UC-5-SA-3,,,,,,,,,,,
