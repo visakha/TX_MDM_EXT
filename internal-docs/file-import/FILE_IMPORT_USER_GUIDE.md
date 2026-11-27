@@ -179,7 +179,7 @@ Restore of a deleted source record is also an operation (DOCS, not tested).
 | R3 | UC-FI1..5-R3 | deletes on own rows, root Patch | wrote nothing; on hold (SR) |
 | R4 | R4-1 | blank root cell under Patch | VERIFIED 2026-11-27: blank applied - MASTER_UPDATED, last_name DELETED (Phonesonly -> null) |
 | R4 | R4-2 | older Source Last Update Date | VERIFIED 2026-11-27: skipped as stale - no event, last_name stays Addronly |
-| R4 | R4-3 | lookup value not on the list | VERIFIED 2026-11-27: NOT rejected - PH-9 saved with ph_typ.Code Mobil and no ph_typ.Name (valid codes like Mobile carry a Name). Whether MDM flags it as a validation error: open, Vamsi checking |
+| R4 | R4-3 | lookup value not on the list | VERIFIED 2026-11-27: NOT rejected - PH-9 saved with ph_typ.Code Mobil and no ph_typ.Name (valid codes like Mobile carry a Name). Event states validation FAILED - so a bad lookup is accepted but flags the record |
 | R4 | R4-4 | phone number too long | PARTIAL 2026-11-27: PH-8 row landed (ph_num 123) but phone_num missing from the event - likely not mapped in the wizard, unconfirmed |
 | R4 | R4-5 | no-op re-send, same values and date | VERIFIED 2026-11-27: no event |
 | R4 | R4-6 | same key from zlv_eci | VERIFIED 2026-11-27 (extract_20261127_111347): new master BID 302, xref zlv_eci; key is source-scoped, BID 200 untouched |
