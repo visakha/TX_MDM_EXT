@@ -47,7 +47,7 @@ rename it to `application.properties`, fill in the Oracle values. No secrets in 
 | `txmdmext.batch-size` | Max unprocessed rows read per pass. |
 | `txmdmext.zone` | Zone for the timestamps written (`UTC`). |
 | `txmdmext.md5.<TABLE>` | row_md5 formula per Type 2 table, see below. All 7 required. |
-| `txmdmext.idmc.*` | Publish-job kick-off, `enabled=false` by default. |
+| `txmdmext.idmc.*` | Publish-job kick-off: job `mdm_zlv_guest_pub_evts_001`, Job Process Type `Publish Business Events`. |
 | `server.port` | Port of the heartbeat endpoint (`8085` in the example). |
 | `txmdmext.log-dir` | Folder for the log file, see Log file location. |
 
@@ -81,7 +81,7 @@ Both V001 (fresh schema) and V002 (your database) create the tables with `row_md
 
 Each pass:
 
-1. Optionally starts the IDMC publish job (OFF by default, see below).
+1. Starts the IDMC publish job `mdm_zlv_guest_pub_evts_001` when `txmdmext.idmc.enabled=true`.
 2. Reads rows of `ZLV_MDM_EVENTS_STORE` where `PROCESSED_DTM IS NULL` (up to `txmdmext.batch-size`).
 3. Dedupes on `ID01` (keeps one row; a copy with a payload wins).
 4. Parses `PAYLOAD` into records and enums (eventType, impliedOperation, xrefType,
@@ -115,10 +115,12 @@ Muse's proposal built on the real 36 events; please check them against your inte
 
 - `EVT_ZLV_GUEST_SOURCE_HIST` is NOT filled. It needs source VALUES from the B360 source-record API;
   events only carry source keys. See `source/SourceRecordReader` (interface + TODO).
-- The IDMC publish trigger is OFF by default and was never run against your org. It mirrors
-  tx-mdm (v3 login, then `POST {mdmUrl}/job/public/api/v1/jobInstance/{kind}` with
-  `IDS-SESSION-ID`, body `{"jobDefinitionId": ...}`). The `{kind}` value for a publish job
-  is UNVERIFIED. A 429 stops it, no retry. The password is never logged.
+- Publish trigger: Vamsi tested the trigger and job type in his org on 2026-11-26 afternoon and
+  they work. Job Name `mdm_zlv_guest_pub_evts_001`, Job Process Type `Publish Business Events`.
+  The app calls v3 login, then `POST {mdmUrl}/job/public/api/v1/jobInstance/{kind}` with
+  `IDS-SESSION-ID`, body `{"jobDefinitionId": ...}`. Put the `{kind}` value and the job
+  definition ID from your tested call into application.properties; the app does not look the
+  ID up from the job name. A 429 stops it, no retry. The password is never logged.
 - Never ran against Oracle. Tested on H2 in Oracle mode (see Tests).
 - It never runs DDL, never drops, truncates or deletes anything (`spring.sql.init.mode=never`,
   no JPA / Hibernate / Flyway / Liquibase).
@@ -193,7 +195,7 @@ H2 is a test-scope dependency only.
 | `history` | Pure Java: `HistoryPlanner` (event + prior state -> rows), `RowHash` (row_md5) |
 | `store` | Event store, field change, membership/xref, idempotency repositories (`JdbcClient`); `MasterStore` / `ChildStore` interfaces |
 | `job` | `ScanJob` (interval from properties), `EventProcessor` (one transaction per event), `HistoryWriter` |
-| `idmc` | `IdmcPublishTrigger`: disabled default + B360 job call (unverified) |
+| `idmc` | `IdmcPublishTrigger`: B360 publish job call (`mdm_zlv_guest_pub_evts_001`) |
 | `source` | `SourceRecordReader` interface for `EVT_ZLV_GUEST_SOURCE_HIST` (TODO) |
 
 ## How SQL gets its table names
