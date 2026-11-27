@@ -215,3 +215,7 @@ addresses / alt ids in the event payload with the round's _expected.csv.
 
 The generator only writes files. It does not import, publish or touch any database.
 Round 3 (the delete layout) is still pending verification in our org - see Section 5.
+
+- PLACEHOLDER (Vamsi, 2026-11-27): ph_num is still marked required in the
+  entity, so every phone row carries x_phone.ph_num = 123 as a dummy value.
+  The real number goes in x_phone.phone_num (text). Ignore ph_num everywhere.
