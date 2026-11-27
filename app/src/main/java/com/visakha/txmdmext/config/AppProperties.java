@@ -28,8 +28,8 @@ public record AppProperties(
   public record Scan(Duration interval) {}
 
   /**
-   * Publish-job kick-off ("Pub EVT ZLV guest", a Business 360 job). Off by default. Credentials
-   * only in the external file. publishJobKind is the {kind} path part and is UNVERIFIED.
+   * Publish-job kick-off (mdm_zlv_guest_pub_evts_001, Job Process Type Publish Business Events;
+   * tested by Vamsi 2026-11-26). Credentials only in the external file.
    */
   public record Idmc(
       @DefaultValue("false") boolean enabled,
