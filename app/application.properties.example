@@ -57,6 +57,10 @@ txmdmext.idmc.publish-job-definition-id=<job_definition_id>
 
 logging.level.com.visakha.txmdmext=INFO
 
+# --- Heartbeat: GET http://<host>:<server.port>/api/heartbeat ---
+# Port of the small web server that serves the heartbeat. Pick any free port.
+server.port=8085
+
 # --- Log file: write the log to ANY folder you choose (outside the app folder is fine) ---
 # Set txmdmext.log-dir to the folder; the file is <log-dir>/tx-mdm-ext.log.
 # Use forward slashes on Windows, e.g. C:/tx-mdm-ext/logs. The folder is created if missing.

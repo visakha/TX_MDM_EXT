@@ -48,6 +48,8 @@ rename it to `application.properties`, fill in the Oracle values. No secrets in 
 | `txmdmext.zone` | Zone for the timestamps written (`UTC`). |
 | `txmdmext.md5.<TABLE>` | row_md5 formula per Type 2 table, see below. All 7 required. |
 | `txmdmext.idmc.*` | Publish-job kick-off, `enabled=false` by default. |
+| `server.port` | Port of the heartbeat endpoint (`8085` in the example). |
+| `txmdmext.log-dir` | Folder for the log file, see Log file location. |
 
 The publish trigger (when enabled) runs at the start of the same pass, so there is only one
 interval. The next pass starts `txmdmext.scan.interval` after the previous one finished.
@@ -173,6 +175,7 @@ No mocking framework. Fixtures are the real 44 rows / 36 events of
 | `it/H2RerunIT` | second run adds nothing, reprocessing adds nothing, bad rows, V002 beside the old tables |
 | `model/zlvguest/ZlvGuestModelTest` | prefix on all 9 tables, tables in both DDL files, hash columns, engine stays guest-free |
 | `store/SqlNamesTest` | only plain Oracle identifiers get into SQL text |
+| `web/HeartbeatTest` | heartbeat built from the scan status; GET /api/heartbeat through MockMvc |
 
 The H2 tests create a fresh in-memory database per test class and apply
 `../ddl/V001__history_tables.sql` unchanged plus a test-only CREATE of
@@ -211,3 +214,35 @@ The log folder is configurable in your external application.properties:
 Point txmdmext.log-dir at any folder you like; the log is written to tx-mdm-ext.log in that
 folder (rolled at 10 MB, 30 files kept). Use forward slashes on Windows. You can also
 override it for one run on the command line: --txmdmext.log-dir=D:/somewhere/logs
+
+## Heartbeat: GET /api/heartbeat
+
+A small read-only endpoint that says the app is up and when the last scan pass ran. It is
+built from memory (no database call), so it answers even while Oracle is down.
+
+```powershell
+Invoke-RestMethod http://localhost:8085/api/heartbeat
+```
+
+```bash
+curl http://localhost:8085/api/heartbeat
+```
+
+Example answer:
+
+```json
+{"status":"UP","app":"tx-mdm-ext","version":"0.1.0",
+ "startedAt":"2026-11-27T08:00:00Z","now":"2026-11-27T09:05:00Z","uptimeSeconds":3900,
+ "lastScanStartedAt":"2026-11-27T09:00:00Z","lastScanEndedAt":"2026-11-27T09:00:04Z",
+ "lastScanResult":{"rowsRead":44,"distinctEvents":36,"loaded":36,"alreadyLoaded":0,"failed":0,"skipped":0},
+ "lastScanError":null,"nextScanDueAt":"2026-11-27T10:00:04Z","scanInterval":"PT1H"}
+```
+
+- `lastScanResult`, `lastScanStartedAt`, `lastScanEndedAt` are null until the first pass ends.
+- `lastScanError` holds the error of the last pass if it failed, else null.
+- `nextScanDueAt` is null in run-once mode.
+- Port: `server.port` in the external application.properties.
+- `txmdmext.run-once=true`: the app exits after its one pass, so the heartbeat is only up for
+  that pass. `txmdmext.run-once=false`: the app stays up and the heartbeat answers until you
+  stop it.
+- The state is in memory only; after a restart it starts empty again.

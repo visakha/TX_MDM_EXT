@@ -3,6 +3,7 @@ package com.visakha.txmdmext.job;
 import com.visakha.txmdmext.config.AppProperties;
 import com.visakha.txmdmext.idmc.IdmcPublishTrigger;
 import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -26,16 +27,19 @@ public class ScanJob implements SchedulingConfigurer, ApplicationRunner {
   private final EventProcessor processor;
   private final AppProperties props;
   private final ApplicationContext context;
+  private final ScanStatus status;
 
   public ScanJob(
       IdmcPublishTrigger trigger,
       EventProcessor processor,
       AppProperties props,
-      ApplicationContext context) {
+      ApplicationContext context,
+      ScanStatus status) {
     this.trigger = trigger;
     this.processor = processor;
     this.props = props;
     this.context = context;
+    this.status = status;
   }
 
   /** Validates and returns txmdmext.scan.interval. Fails fast with a plain message. */
@@ -60,7 +64,10 @@ public class ScanJob implements SchedulingConfigurer, ApplicationRunner {
     registrar.addFixedDelayTask(this::pass, interval);
   }
 
-  /** txmdmext.run-once=true: one pass, then exit. Handy for a test on the laptop. */
+  /**
+   * txmdmext.run-once=true: one pass, then exit. System.exit also stops the web server, so the
+   * heartbeat is only up for that one pass. run-once=false keeps the process and heartbeat up.
+   */
   @Override
   public void run(ApplicationArguments args) {
     if (props.runOnce()) {
@@ -71,8 +78,19 @@ public class ScanJob implements SchedulingConfigurer, ApplicationRunner {
 
   synchronized void pass() {
     LOG.info("pass start");
-    LOG.info(trigger.triggerPublish());
-    BatchResult result = processor.runOnce();
-    LOG.info("pass done: {}", result);
+    status.started(Instant.now());
+    BatchResult result = null;
+    String error = null;
+    try {
+      LOG.info(trigger.triggerPublish());
+      result = processor.runOnce();
+      LOG.info("pass done: {}", result);
+    } catch (RuntimeException e) {
+      // Recorded for the heartbeat, then rethrown so the failure still shows in the log.
+      error = e.getClass().getSimpleName() + ": " + e.getMessage();
+      throw e;
+    } finally {
+      status.finished(Instant.now(), result, error, props.runOnce() ? null : interval(props));
+    }
   }
 }
