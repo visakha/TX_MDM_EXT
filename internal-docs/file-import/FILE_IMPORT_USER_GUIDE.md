@@ -61,6 +61,10 @@ Rules (VERIFIED unless marked):
 - Address needs country.
 - ph_num is an Integer field. Long numbers fail with "invalid format".
   10 digits failed; 6 digits worked. Keep test numbers short.
+- NEW FIELD (Vamsi, 2026-11-27): x_phone.phone_num, TEXT type, added because
+  the Integer ph_num rejected the whole 4a file on an 11-digit number.
+  Use phone_num in all file imports from round 4 on; ph_num is legacy.
+  Round 4a/4b CSV headers now use x_phone.phone_num.
 - Lookup fields must use codes that exist in Reference 360
   (internal-docs/LOOKUPS.md). Codes are case sensitive (VoIP, EMP ID).
 
