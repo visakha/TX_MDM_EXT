@@ -12,6 +12,9 @@
 --   Rows are never deleted. A removed child row gets a final version with is_deleted = 1.
 -- Lookups are stored as two columns: <field>_cd (Code) and <field>_nm (Name).
 -- Booleans are NUMBER(1): 1 = true, 0 = false, NULL = not supplied.
+-- row_md5 (Type 2 tables): MD5 of the tracked business columns, computed by the app
+--   (column list per table in application.properties, txmdmext.md5.<TABLE>). A new
+--   version is written only when row_md5 differs from the current row.
 -- id01 points back to ZLV_MDM_EVENTS_STORE.id01 (the event that produced the row).
 
 ------------------------------------------------------------------------
@@ -53,6 +56,7 @@ CREATE TABLE EVT_MASTER_HIST (
     touch_cd_nm           VARCHAR2(255),
     is_deleted            NUMBER(1)      DEFAULT 0 NOT NULL,
     payload_json          CLOB,
+    row_md5               CHAR(32),
     valid_from            TIMESTAMP(3)   NOT NULL,
     valid_to              TIMESTAMP(3),
     is_current            NUMBER(1)      DEFAULT 1 NOT NULL,
@@ -76,6 +80,7 @@ CREATE TABLE EVT_MASTER_PHONE_HIST (
     ph_typ_nm      VARCHAR2(255),
     no_mrkt_calls  NUMBER(1),
     is_deleted     NUMBER(1)     DEFAULT 0 NOT NULL,
+    row_md5        CHAR(32),
     valid_from     TIMESTAMP(3)  NOT NULL,
     valid_to       TIMESTAMP(3),
     is_current     NUMBER(1)     DEFAULT 1 NOT NULL,
@@ -108,6 +113,7 @@ CREATE TABLE EVT_MASTER_SRC_ADDR_HIST (
     country_cd_cd        VARCHAR2(64),
     country_cd_nm        VARCHAR2(255),
     is_deleted           NUMBER(1)     DEFAULT 0 NOT NULL,
+    row_md5              CHAR(32),
     valid_from           TIMESTAMP(3)  NOT NULL,
     valid_to             TIMESTAMP(3),
     is_current           NUMBER(1)     DEFAULT 1 NOT NULL,
@@ -153,6 +159,7 @@ CREATE TABLE EVT_MASTER_ADDR_HIST (
     status_message           VARCHAR2(4000),
     elevation                VARCHAR2(64),
     is_deleted               NUMBER(1)     DEFAULT 0 NOT NULL,
+    row_md5                  CHAR(32),
     valid_from               TIMESTAMP(3)  NOT NULL,
     valid_to                 TIMESTAMP(3),
     is_current               NUMBER(1)     DEFAULT 1 NOT NULL,
@@ -178,6 +185,7 @@ CREATE TABLE EVT_MASTER_ALT_ID_HIST (
     sec_segment_typ_nm  VARCHAR2(255),
     user_notes          VARCHAR2(255),
     is_deleted          NUMBER(1)     DEFAULT 0 NOT NULL,
+    row_md5             CHAR(32),
     valid_from          TIMESTAMP(3)  NOT NULL,
     valid_to            TIMESTAMP(3),
     is_current          NUMBER(1)     DEFAULT 1 NOT NULL,
@@ -221,6 +229,7 @@ CREATE TABLE EVT_MEMBER_HIST (
     source_pkey     VARCHAR2(255) NOT NULL,
     id01_opened     VARCHAR2(255) NOT NULL,
     id01_closed     VARCHAR2(255),
+    row_md5         CHAR(32),
     valid_from      TIMESTAMP(3)  NOT NULL,
     valid_to        TIMESTAMP(3),
     is_current      NUMBER(1)     DEFAULT 1 NOT NULL,
@@ -262,6 +271,7 @@ CREATE TABLE EVT_SOURCE_HIST (
     xref_type       VARCHAR2(16),
     is_deleted      NUMBER(1)     DEFAULT 0 NOT NULL,
     source_json     CLOB,
+    row_md5         CHAR(32),
     valid_from      TIMESTAMP(3)  NOT NULL,
     valid_to        TIMESTAMP(3),
     is_current      NUMBER(1)     DEFAULT 1 NOT NULL,

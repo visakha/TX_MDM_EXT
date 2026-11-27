@@ -4,14 +4,60 @@ import com.visakha.txmdmext.history.ChildRow;
 import com.visakha.txmdmext.history.ChildVersion;
 import com.visakha.txmdmext.history.FieldGroup;
 import com.visakha.txmdmext.history.Lookup;
+import com.visakha.txmdmext.history.OpenChild;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /** The four child-group history tables. Type 2: close the open row, then append. */
 @Repository
 public class ChildHistoryRepository {
+
+  static final String OPEN_PHONES =
+      """
+      SELECT child_id, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls, row_md5
+        FROM EVT_MASTER_PHONE_HIST
+       WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
+      """;
+
+  static final String OPEN_SRC_ADDRS =
+      """
+      SELECT child_id, address_line_1, address_line_2, address_line_3, sub_bldg_nm, bldg_name,
+             nearest_airport, bldg_mgmnt_company, city, state_cd_cd, state_cd_nm,
+             address_status_cd_cd, address_status_cd_nm, address_typ_cd, address_typ_nm,
+             postal_cd, country_cd_cd, country_cd_nm, row_md5
+        FROM EVT_MASTER_SRC_ADDR_HIST
+       WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
+      """;
+
+  static final String OPEN_ADDRS =
+      """
+      SELECT child_id, default_indicator, address_type_cd, address_type_nm, usage_type_cd,
+             usage_type_nm, address_line1, address_line2, address_line3, city, county,
+             state_cd, state_nm, country_cd, country_nm, postal_code, postal_code_extension,
+             coordinate_system, location_coordinate_desc, address_status_cd, address_status_nm,
+             latitude, longitude, effective_start_date, effective_end_date,
+             enriched_indicator_cd, enriched_indicator_nm, status_code, status_message,
+             elevation, row_md5
+        FROM EVT_MASTER_ADDR_HIST
+       WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
+      """;
+
+  static final String OPEN_ALT_IDS =
+      """
+      SELECT child_id, alt_id_val, alt_id_typ_cd, alt_id_typ_nm, active_ind, start_date,
+             pri_segment_typ_cd, pri_segment_typ_nm, sec_segment_typ_cd, sec_segment_typ_nm,
+             user_notes, row_md5
+        FROM EVT_MASTER_ALT_ID_HIST
+       WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
+      """;
 
   static final String CLOSE_PHONE =
       """
@@ -41,10 +87,10 @@ public class ChildHistoryRepository {
       """
       INSERT INTO EVT_MASTER_PHONE_HIST (
         business_id, child_id, id01, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls,
-        is_deleted, valid_from, valid_to, is_current)
+        is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :childId, :id01, :cntryCd, :phNum, :phTypCd, :phTypNm, :noMrktCalls,
-        :isDeleted, :validFrom, NULL, 1)
+        :isDeleted, :rowMd5, :validFrom, NULL, 1)
       """;
 
   static final String INSERT_SRC_ADDR =
@@ -54,13 +100,13 @@ public class ChildHistoryRepository {
         sub_bldg_nm, bldg_name, nearest_airport, bldg_mgmnt_company, city,
         state_cd_cd, state_cd_nm, address_status_cd_cd, address_status_cd_nm,
         address_typ_cd, address_typ_nm, postal_cd, country_cd_cd, country_cd_nm,
-        is_deleted, valid_from, valid_to, is_current)
+        is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :childId, :id01, :addressLine1, :addressLine2, :addressLine3,
         :subBldgNm, :bldgName, :nearestAirport, :bldgMgmntCompany, :city,
         :stateCdCd, :stateCdNm, :addressStatusCdCd, :addressStatusCdNm,
         :addressTypCd, :addressTypNm, :postalCd, :countryCdCd, :countryCdNm,
-        :isDeleted, :validFrom, NULL, 1)
+        :isDeleted, :rowMd5, :validFrom, NULL, 1)
       """;
 
   static final String INSERT_ADDR =
@@ -72,7 +118,7 @@ public class ChildHistoryRepository {
         coordinate_system, location_coordinate_desc, address_status_cd, address_status_nm,
         latitude, longitude, effective_start_date, effective_end_date,
         enriched_indicator_cd, enriched_indicator_nm, status_code, status_message, elevation,
-        is_deleted, valid_from, valid_to, is_current)
+        is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :childId, :id01, :defaultIndicator, :addressTypeCd, :addressTypeNm,
         :usageTypeCd, :usageTypeNm, :addressLine1, :addressLine2, :addressLine3, :city, :county,
@@ -80,7 +126,7 @@ public class ChildHistoryRepository {
         :coordinateSystem, :locationCoordinateDesc, :addressStatusCd, :addressStatusNm,
         :latitude, :longitude, :effectiveStartDate, :effectiveEndDate,
         :enrichedIndicatorCd, :enrichedIndicatorNm, :statusCode, :statusMessage, :elevation,
-        :isDeleted, :validFrom, NULL, 1)
+        :isDeleted, :rowMd5, :validFrom, NULL, 1)
       """;
 
   static final String INSERT_ALT_ID =
@@ -88,11 +134,11 @@ public class ChildHistoryRepository {
       INSERT INTO EVT_MASTER_ALT_ID_HIST (
         business_id, child_id, id01, alt_id_val, alt_id_typ_cd, alt_id_typ_nm, active_ind,
         start_date, pri_segment_typ_cd, pri_segment_typ_nm, sec_segment_typ_cd,
-        sec_segment_typ_nm, user_notes, is_deleted, valid_from, valid_to, is_current)
+        sec_segment_typ_nm, user_notes, is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :childId, :id01, :altIdVal, :altIdTypCd, :altIdTypNm, :activeInd,
         :startDate, :priSegmentTypCd, :priSegmentTypNm, :secSegmentTypCd,
-        :secSegmentTypNm, :userNotes, :isDeleted, :validFrom, NULL, 1)
+        :secSegmentTypNm, :userNotes, :isDeleted, :rowMd5, :validFrom, NULL, 1)
       """;
 
   private static final Lookup NO_LOOKUP = new Lookup(null, null);
@@ -103,6 +149,115 @@ public class ChildHistoryRepository {
   public ChildHistoryRepository(JdbcClient jdbc, DbTime time) {
     this.jdbc = jdbc;
     this.time = time;
+  }
+
+  /** Open (current, not deleted) rows of one group, by child _id, read back as stored. */
+  public Map<String, OpenChild> openRows(FieldGroup group, String businessId) {
+    String sql =
+        switch (group) {
+          case X_PHONE -> OPEN_PHONES;
+          case X_SRC_ADDRESS -> OPEN_SRC_ADDRS;
+          case ADDRESS -> OPEN_ADDRS;
+          case X_ALT_ID -> OPEN_ALT_IDS;
+        };
+    List<OpenChild> rows =
+        jdbc.sql(sql)
+            .param("businessId", businessId)
+            .query((rs, n) -> new OpenChild(row(group, rs), trim(rs.getString("row_md5"))))
+            .list();
+    Map<String, OpenChild> byId = new LinkedHashMap<>();
+    rows.forEach(o -> byId.put(o.row().childId(), o));
+    return byId;
+  }
+
+  private ChildRow row(FieldGroup group, ResultSet rs) throws SQLException {
+    String id = rs.getString("child_id");
+    return switch (group) {
+      case X_PHONE ->
+          new ChildRow.Phone(
+              id,
+              whole(rs, "cntry_cd"),
+              whole(rs, "ph_num"),
+              lookup(rs, "ph_typ_cd", "ph_typ_nm"),
+              bool(rs, "no_mrkt_calls"));
+      case X_SRC_ADDRESS ->
+          new ChildRow.SrcAddress(
+              id,
+              rs.getString("address_line_1"),
+              rs.getString("address_line_2"),
+              rs.getString("address_line_3"),
+              rs.getString("sub_bldg_nm"),
+              rs.getString("bldg_name"),
+              rs.getString("nearest_airport"),
+              rs.getString("bldg_mgmnt_company"),
+              rs.getString("city"),
+              lookup(rs, "state_cd_cd", "state_cd_nm"),
+              lookup(rs, "address_status_cd_cd", "address_status_cd_nm"),
+              lookup(rs, "address_typ_cd", "address_typ_nm"),
+              whole(rs, "postal_cd"),
+              lookup(rs, "country_cd_cd", "country_cd_nm"));
+      case ADDRESS ->
+          new ChildRow.Address(
+              id,
+              bool(rs, "default_indicator"),
+              lookup(rs, "address_type_cd", "address_type_nm"),
+              lookup(rs, "usage_type_cd", "usage_type_nm"),
+              rs.getString("address_line1"),
+              rs.getString("address_line2"),
+              rs.getString("address_line3"),
+              rs.getString("city"),
+              rs.getString("county"),
+              lookup(rs, "state_cd", "state_nm"),
+              lookup(rs, "country_cd", "country_nm"),
+              rs.getString("postal_code"),
+              rs.getString("postal_code_extension"),
+              rs.getString("coordinate_system"),
+              rs.getString("location_coordinate_desc"),
+              lookup(rs, "address_status_cd", "address_status_nm"),
+              rs.getString("latitude"),
+              rs.getString("longitude"),
+              time.instant(rs.getObject("effective_start_date", LocalDateTime.class)),
+              time.instant(rs.getObject("effective_end_date", LocalDateTime.class)),
+              lookup(rs, "enriched_indicator_cd", "enriched_indicator_nm"),
+              rs.getString("status_code"),
+              rs.getString("status_message"),
+              rs.getString("elevation"));
+      case X_ALT_ID ->
+          new ChildRow.AltId(
+              id,
+              rs.getString("alt_id_val"),
+              lookup(rs, "alt_id_typ_cd", "alt_id_typ_nm"),
+              bool(rs, "active_ind"),
+              date(rs, "start_date"),
+              lookup(rs, "pri_segment_typ_cd", "pri_segment_typ_nm"),
+              lookup(rs, "sec_segment_typ_cd", "sec_segment_typ_nm"),
+              rs.getString("user_notes"));
+    };
+  }
+
+  private static Long whole(ResultSet rs, String col) throws SQLException {
+    long v = rs.getLong(col);
+    return rs.wasNull() ? null : v;
+  }
+
+  private static Boolean bool(ResultSet rs, String col) throws SQLException {
+    int v = rs.getInt(col);
+    return rs.wasNull() ? null : v == 1;
+  }
+
+  private static LocalDate date(ResultSet rs, String col) throws SQLException {
+    java.sql.Date d = rs.getDate(col);
+    return d == null ? null : d.toLocalDate();
+  }
+
+  private static Lookup lookup(ResultSet rs, String codeCol, String nameCol) throws SQLException {
+    String code = rs.getString(codeCol);
+    String name = rs.getString(nameCol);
+    return code == null && name == null ? null : new Lookup(code, name);
+  }
+
+  private static String trim(String s) {
+    return s == null ? null : s.trim();
   }
 
   public void closeCurrent(
@@ -199,6 +354,7 @@ public class ChildHistoryRepository {
         .param("childId", version.row().childId(), Types.VARCHAR)
         .param("id01", id01, Types.VARCHAR)
         .param("isDeleted", version.deleted() ? 1 : 0, Types.INTEGER)
+        .param("rowMd5", version.rowMd5(), Types.CHAR)
         .param("validFrom", validFrom, Types.TIMESTAMP)
         .update();
   }

@@ -21,6 +21,10 @@ public class DbTime {
     return instant == null ? null : LocalDateTime.ofInstant(instant, zone);
   }
 
+  public Instant instant(LocalDateTime value) {
+    return value == null ? null : value.atZone(zone).toInstant();
+  }
+
   public LocalDateTime now() {
     return LocalDateTime.now(zone);
   }

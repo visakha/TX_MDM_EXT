@@ -3,6 +3,7 @@ package com.visakha.txmdmext.job;
 import com.visakha.txmdmext.history.ChildVersion;
 import com.visakha.txmdmext.history.HistoryPlan;
 import com.visakha.txmdmext.history.MemberKey;
+import com.visakha.txmdmext.history.MemberVersion;
 import com.visakha.txmdmext.store.ChildHistoryRepository;
 import com.visakha.txmdmext.store.DbTime;
 import com.visakha.txmdmext.store.FieldChangeRepository;
@@ -37,8 +38,10 @@ public class HistoryWriter {
   public void write(HistoryPlan plan) {
     LocalDateTime at = time.of(plan.validFrom());
     String bid = plan.businessId();
-    masters.closeCurrent(bid, at);
-    masters.insert(plan.master());
+    if (plan.master() != null) {
+      masters.closeCurrent(bid, at);
+      masters.insert(plan.master());
+    }
     for (ChildVersion v : plan.childVersions()) {
       children.closeCurrent(v.row().group(), bid, v.row().childId(), at);
       children.insert(bid, plan.id01(), v, at);
@@ -46,7 +49,7 @@ public class HistoryWriter {
     for (MemberKey m : plan.membersToClose()) {
       sources.closeMember(bid, m, plan.id01(), at);
     }
-    for (MemberKey m : plan.membersToOpen()) {
+    for (MemberVersion m : plan.membersToOpen()) {
       sources.openMember(bid, m, plan.id01(), at);
     }
     plan.fieldChanges().forEach(fieldChanges::insert);

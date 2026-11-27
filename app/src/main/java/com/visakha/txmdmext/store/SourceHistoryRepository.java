@@ -1,6 +1,7 @@
 package com.visakha.txmdmext.store;
 
 import com.visakha.txmdmext.history.MemberKey;
+import com.visakha.txmdmext.history.MemberVersion;
 import com.visakha.txmdmext.history.XrefChangeRow;
 import java.sql.Types;
 import java.time.LocalDateTime;
@@ -34,8 +35,9 @@ public class SourceHistoryRepository {
   static final String OPEN_MEMBER =
       """
       INSERT INTO EVT_MEMBER_HIST (
-        business_id, source_system, source_pkey, id01_opened, valid_from, valid_to, is_current)
-      VALUES (:businessId, :sourceSystem, :sourcePkey, :id01, :validFrom, NULL, 1)
+        business_id, source_system, source_pkey, id01_opened, row_md5, valid_from, valid_to,
+        is_current)
+      VALUES (:businessId, :sourceSystem, :sourcePkey, :id01, :rowMd5, :validFrom, NULL, 1)
       """;
 
   static final String INSERT_XREF_CHANGE =
@@ -75,8 +77,10 @@ public class SourceHistoryRepository {
         .update();
   }
 
-  public void openMember(String businessId, MemberKey m, String id01, LocalDateTime validFrom) {
+  public void openMember(String businessId, MemberVersion v, String id01, LocalDateTime validFrom) {
+    MemberKey m = v.key();
     jdbc.sql(OPEN_MEMBER)
+        .param("rowMd5", v.rowMd5(), Types.CHAR)
         .param("businessId", businessId, Types.VARCHAR)
         .param("sourceSystem", m.sourceSystem(), Types.VARCHAR)
         .param("sourcePkey", m.sourcePkey(), Types.VARCHAR)

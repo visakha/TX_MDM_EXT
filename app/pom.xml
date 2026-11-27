@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.2.0</version>
+    <version>4.1.2</version>
     <relativePath/>
   </parent>
 
@@ -36,6 +36,12 @@
       <artifactId>ojdbc11</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- In-memory H2 in Oracle mode for the *IT integration tests only. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -53,6 +59,19 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- *IT classes (H2 end to end) run in "mvn verify", after the unit tests. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <!-- Google Java Style. "mvn spotless:apply" formats, the build checks. -->
       <plugin>

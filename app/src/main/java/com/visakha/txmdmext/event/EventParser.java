@@ -22,8 +22,15 @@ public class EventParser {
     return mapper.readTree(json);
   }
 
+  /** Throws IllegalArgumentException (empty payload) or a Jackson error (not JSON). */
   public BusinessEvent parse(StoredEvent row) {
+    if (row.payload() == null || row.payload().isBlank()) {
+      throw new IllegalArgumentException("empty PAYLOAD");
+    }
     JsonNode root = mapper.readTree(row.payload());
+    if (root == null || !root.isObject()) {
+      throw new IllegalArgumentException("PAYLOAD is not a JSON object");
+    }
     String eventTypeName = text(root, "eventType");
     return new BusinessEvent(
         row.id01(),

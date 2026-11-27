@@ -11,25 +11,31 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-/** Pure Java: turns one event plus what history already holds into the rows to write. */
+/**
+ * Pure Java: turns one event plus what history already holds into the rows to write. Change data
+ * capture: a master or child version is written only when its row_md5 differs from the stored one.
+ */
 public final class HistoryPlanner {
 
   private static final int MAX_TEXT = 4000;
 
-  private HistoryPlanner() {}
+  private final RowHash hash;
 
-  public static HistoryPlan plan(BusinessEvent e, PriorState prior) {
+  public HistoryPlanner(RowHash hash) {
+    this.hash = hash;
+  }
+
+  public HistoryPlan plan(BusinessEvent e, PriorState prior) {
     Instant validFrom = Instant.ofEpochMilli(e.effectiveTime());
     return new HistoryPlan(
         e.id01(),
         e.businessId(),
         validFrom,
-        master(e, validFrom),
+        master(e, validFrom, prior),
         childVersions(e, prior),
         membersToOpen(e, prior),
         membersToClose(e, prior),
@@ -37,7 +43,17 @@ public final class HistoryPlanner {
         xrefChanges(e, validFrom));
   }
 
-  static MasterVersion master(BusinessEvent e, Instant validFrom) {
+  /** No payload means the master content is unknown, so no version is written. */
+  MasterVersion master(BusinessEvent e, Instant validFrom, PriorState prior) {
+    if (!e.hasPayload()) {
+      return null;
+    }
+    MasterVersion v = masterRow(e, validFrom);
+    String md5 = hash.md5(HistTable.EVT_MASTER_HIST, HashValues.master(v));
+    return md5.equals(prior.masterMd5()) ? null : v.withRowMd5(md5);
+  }
+
+  static MasterVersion masterRow(BusinessEvent e, Instant validFrom) {
     boolean deleted =
         switch (e.impliedOperation()) {
           case DELETE, PURGE -> true;
@@ -57,52 +73,48 @@ public final class HistoryPlanner {
         e.states().base(),
         e.states().validation(),
         e.states().createMode(),
-        e.hasPayload()
-            ? PayloadReader.meta(e.payload())
-            : new MetaInfo(null, null, null, null, null),
-        e.hasPayload()
-            ? PayloadReader.root(e.payload())
-            : new GuestRoot(
-                null, null, null, null, null, null, null, null, null, null, null, null, null),
+        PayloadReader.meta(e.payload()),
+        PayloadReader.root(e.payload()),
         deleted,
-        e.hasPayload() ? e.payload().toString() : null,
-        validFrom);
+        e.payload().toString(),
+        validFrom,
+        null);
   }
 
   /**
-   * Snapshot diff per group: new or changed rows get a new version, rows that left the payload get
-   * a deleted version. No payload means we cannot tell, so nothing changes.
+   * Per group: a payload row whose md5 differs from the open row (or is new) gets a version; an
+   * open row missing from the payload gets a deleted version. No payload: nothing changes.
    */
-  static List<ChildVersion> childVersions(BusinessEvent e, PriorState prior) {
+  List<ChildVersion> childVersions(BusinessEvent e, PriorState prior) {
     if (!e.hasPayload()) {
       return List.of();
     }
     return Arrays.stream(FieldGroup.values()).flatMap(group -> diffGroup(e, prior, group)).toList();
   }
 
-  private static Stream<ChildVersion> diffGroup(BusinessEvent e, PriorState prior, FieldGroup g) {
-    Map<String, ChildRow> before =
-        prior.currentPayload() == null
-            ? Map.of()
-            : byId(PayloadReader.children(prior.currentPayload(), g));
-    Map<String, ChildRow> after = byId(PayloadReader.children(e.payload(), g));
+  private Stream<ChildVersion> diffGroup(BusinessEvent e, PriorState prior, FieldGroup g) {
+    HistTable table = HistTable.of(g);
+    Map<String, OpenChild> open = prior.openChildren(g);
+    List<ChildRow> after =
+        PayloadReader.children(e.payload(), g).stream().filter(r -> r.childId() != null).toList();
+    Set<String> afterIds = after.stream().map(ChildRow::childId).collect(Collectors.toSet());
     Stream<ChildVersion> changed =
-        after.values().stream()
-            .filter(row -> !row.equals(before.get(row.childId())))
-            .map(row -> new ChildVersion(row, false));
+        after.stream()
+            .map(row -> version(table, e.businessId(), row, false))
+            .filter(v -> !sameMd5(open.get(v.row().childId()), v.rowMd5()));
     Stream<ChildVersion> removed =
-        before.values().stream()
-            .filter(row -> !after.containsKey(row.childId()))
-            .map(row -> new ChildVersion(row, true));
+        open.values().stream()
+            .filter(o -> !afterIds.contains(o.row().childId()))
+            .map(o -> version(table, e.businessId(), o.row(), true));
     return Stream.concat(changed, removed);
   }
 
-  private static Map<String, ChildRow> byId(List<ChildRow> rows) {
-    return rows.stream()
-        .filter(row -> row.childId() != null)
-        .collect(
-            Collectors.toMap(
-                ChildRow::childId, Function.identity(), (a, b) -> a, java.util.LinkedHashMap::new));
+  private ChildVersion version(HistTable table, String bid, ChildRow row, boolean deleted) {
+    return new ChildVersion(row, deleted, hash.md5(table, HashValues.child(bid, row, deleted)));
+  }
+
+  private static boolean sameMd5(OpenChild open, String md5) {
+    return open != null && md5.equals(open.rowMd5());
   }
 
   /** members[] is the full membership after the event. A merged-away master keeps none. */
@@ -115,8 +127,13 @@ public final class HistoryPlanner {
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
-  static List<MemberKey> membersToOpen(BusinessEvent e, PriorState prior) {
-    return membersAfter(e).stream().filter(m -> !prior.openMembers().contains(m)).toList();
+  List<MemberVersion> membersToOpen(BusinessEvent e, PriorState prior) {
+    return membersAfter(e).stream()
+        .filter(m -> !prior.openMembers().contains(m))
+        .map(m ->
+            new MemberVersion(
+                m, hash.md5(HistTable.EVT_MEMBER_HIST, HashValues.member(e.businessId(), m))))
+        .toList();
   }
 
   static List<MemberKey> membersToClose(BusinessEvent e, PriorState prior) {

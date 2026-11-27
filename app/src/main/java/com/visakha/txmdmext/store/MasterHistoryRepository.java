@@ -14,11 +14,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class MasterHistoryRepository {
 
-  static final String COUNT_BY_ID01 = "SELECT COUNT(*) FROM EVT_MASTER_HIST WHERE id01 = :id01";
-
-  static final String CURRENT_PAYLOAD =
+  static final String CURRENT_MD5 =
       """
-      SELECT payload_json
+      SELECT row_md5
         FROM EVT_MASTER_HIST
        WHERE business_id = :businessId
          AND is_current = 1
@@ -44,7 +42,7 @@ public class MasterHistoryRepository {
         first_name, clns_first_name, last_name, clns_last_name, ffr_first_name, ffr_last_name,
         do_not_contact_ind, linkedin_url, last_touch_dtm, prev_last_touch_dtm, touch_incr,
         touch_notes, touch_cd_cd, touch_cd_nm,
-        is_deleted, payload_json, valid_from, valid_to, is_current)
+        is_deleted, payload_json, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :activeBusinessId, :id01, :eventType, :impliedOperation, :correlationId,
         :dateOfChange, :userName, :eventSourceSystem, :mergedBusinessIds,
@@ -53,7 +51,7 @@ public class MasterHistoryRepository {
         :firstName, :clnsFirstName, :lastName, :clnsLastName, :ffrFirstName, :ffrLastName,
         :doNotContactInd, :linkedinUrl, :lastTouchDtm, :prevLastTouchDtm, :touchIncr,
         :touchNotes, :touchCdCd, :touchCdNm,
-        :isDeleted, :payloadJson, :validFrom, NULL, 1)
+        :isDeleted, :payloadJson, :rowMd5, :validFrom, NULL, 1)
       """;
 
   private final JdbcClient jdbc;
@@ -64,16 +62,13 @@ public class MasterHistoryRepository {
     this.time = time;
   }
 
-  public boolean eventAlreadyLoaded(String id01) {
-    Long count = jdbc.sql(COUNT_BY_ID01).param("id01", id01).query(Long.class).single();
-    return count != null && count > 0;
-  }
-
-  public Optional<String> currentPayload(String businessId) {
-    return jdbc.sql(CURRENT_PAYLOAD)
+  /** row_md5 of the current row; empty when there is none (or it predates row_md5). */
+  public Optional<String> currentMd5(String businessId) {
+    return jdbc.sql(CURRENT_MD5)
         .param("businessId", businessId)
-        .query((rs, n) -> rs.getString("payload_json"))
-        .optional();
+        .query((rs, n) -> rs.getString("row_md5"))
+        .optional()
+        .map(String::trim);
   }
 
   public void closeCurrent(String businessId, LocalDateTime validTo) {
@@ -122,6 +117,7 @@ public class MasterHistoryRepository {
         .param("touchCdNm", touchCd.name(), Types.VARCHAR)
         .param("isDeleted", v.deleted() ? 1 : 0, Types.INTEGER)
         .param("payloadJson", v.payloadJson(), Types.CLOB)
+        .param("rowMd5", v.rowMd5(), Types.CHAR)
         .param("validFrom", time.of(v.validFrom()), Types.TIMESTAMP)
         .update();
   }

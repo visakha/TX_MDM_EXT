@@ -1,6 +1,8 @@
 package com.visakha.txmdmext.config;
 
 import com.visakha.txmdmext.event.EventParser;
+import com.visakha.txmdmext.history.HistoryPlanner;
+import com.visakha.txmdmext.history.RowHash;
 import com.visakha.txmdmext.idmc.B360JobPublishTrigger;
 import com.visakha.txmdmext.idmc.DisabledPublishTrigger;
 import com.visakha.txmdmext.idmc.IdmcPublishTrigger;
@@ -16,6 +18,17 @@ public class AppConfig {
   @Bean
   EventParser eventParser() {
     return new EventParser();
+  }
+
+  /** Fails startup when a txmdmext.md5.TABLE entry is missing or names an unknown column. */
+  @Bean
+  RowHash rowHash(AppProperties props) {
+    return RowHash.fromConfig(props.md5());
+  }
+
+  @Bean
+  HistoryPlanner historyPlanner(RowHash rowHash) {
+    return new HistoryPlanner(rowHash);
   }
 
   @Bean

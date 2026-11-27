@@ -1,51 +1,80 @@
 package com.visakha.txmdmext.history;
 
+import com.visakha.txmdmext.config.TestConfig;
 import com.visakha.txmdmext.event.BusinessEvent;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import tools.jackson.databind.JsonNode;
 
 /**
  * Applies HistoryPlans the way HistoryWriter does, but in memory, so the history logic can be
- * checked against the real events without Oracle.
+ * checked against the real events without a database. Uses the formulas of the example file.
  */
 final class InMemoryHistory {
 
   record ChildEvent(String businessId, String id01, ChildVersion version) {}
 
-  final Map<String, JsonNode> currentPayload = new HashMap<>();
+  final HistoryPlanner planner = new HistoryPlanner(TestConfig.exampleRowHash());
+  final Map<String, String> masterMd5 = new HashMap<>();
   final Map<String, List<MasterVersion>> masterVersions = new HashMap<>();
+  final Map<String, Map<FieldGroup, Map<String, OpenChild>>> openChildren = new HashMap<>();
   final Map<String, Set<MemberKey>> openMembers = new HashMap<>();
   final List<ChildEvent> childEvents = new ArrayList<>();
   final List<FieldChangeRow> fieldChanges = new ArrayList<>();
   final List<XrefChangeRow> xrefChanges = new ArrayList<>();
-  final List<HistoryPlan> plans = new ArrayList<>();
+  final Map<String, HistoryPlan> plans = new LinkedHashMap<>();
 
   void replay(List<BusinessEvent> ordered) {
     ordered.stream().filter(HistoryPlanner::isUsable).forEach(this::apply);
   }
 
-  void apply(BusinessEvent e) {
+  PriorState prior(String bid) {
+    return new PriorState(
+        masterMd5.get(bid),
+        openChildren.getOrDefault(bid, Map.of()),
+        Set.copyOf(openMembers.getOrDefault(bid, Set.of())));
+  }
+
+  HistoryPlan apply(BusinessEvent e) {
     String bid = e.businessId();
-    PriorState prior =
-        new PriorState(
-            currentPayload.get(bid), Set.copyOf(openMembers.getOrDefault(bid, Set.of())));
-    HistoryPlan plan = HistoryPlanner.plan(e, prior);
-    plans.add(plan);
-    masterVersions.computeIfAbsent(bid, k -> new ArrayList<>()).add(plan.master());
-    if (e.hasPayload()) {
-      currentPayload.put(bid, e.payload());
+    HistoryPlan plan = planner.plan(e, prior(bid));
+    plans.put(e.id01(), plan);
+    if (plan.master() != null) {
+      masterVersions.computeIfAbsent(bid, k -> new ArrayList<>()).add(plan.master());
+      masterMd5.put(bid, plan.master().rowMd5());
     }
-    plan.childVersions().forEach(v -> childEvents.add(new ChildEvent(bid, e.id01(), v)));
+    Map<FieldGroup, Map<String, OpenChild>> open =
+        openChildren.computeIfAbsent(bid, k -> new EnumMap<>(FieldGroup.class));
+    for (ChildVersion v : plan.childVersions()) {
+      childEvents.add(new ChildEvent(bid, e.id01(), v));
+      Map<String, OpenChild> group =
+          open.computeIfAbsent(v.row().group(), k -> new LinkedHashMap<>());
+      if (v.deleted()) {
+        group.remove(v.row().childId());
+      } else {
+        group.put(v.row().childId(), new OpenChild(v.row(), v.rowMd5()));
+      }
+    }
     Set<MemberKey> members = openMembers.computeIfAbsent(bid, k -> new LinkedHashSet<>());
     members.removeAll(plan.membersToClose());
-    members.addAll(plan.membersToOpen());
+    plan.membersToOpen().forEach(m -> members.add(m.key()));
     fieldChanges.addAll(plan.fieldChanges());
     xrefChanges.addAll(plan.xrefChanges());
+    return plan;
+  }
+
+  HistoryPlan planOf(String id01Prefix, String businessId) {
+    return plans.entrySet().stream()
+        .filter(
+            x -> x.getKey().startsWith(id01Prefix) && x.getValue().businessId().equals(businessId))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElseThrow();
   }
 
   List<ChildEvent> childEventsOf(String businessId, String childId) {
@@ -55,12 +84,11 @@ final class InMemoryHistory {
         .toList();
   }
 
-  /** Open child rows = last version per child id that is not a delete. */
   long openChildren(String businessId, FieldGroup group) {
-    Map<String, ChildVersion> last = new HashMap<>();
-    childEvents.stream()
-        .filter(c -> c.businessId().equals(businessId) && c.version().row().group() == group)
-        .forEach(c -> last.put(c.version().row().childId(), c.version()));
-    return last.values().stream().filter(v -> !v.deleted()).count();
+    return openChildren.getOrDefault(businessId, Map.of()).getOrDefault(group, Map.of()).size();
+  }
+
+  MasterVersion currentMaster(String businessId) {
+    return masterVersions.get(businessId).getLast();
   }
 }

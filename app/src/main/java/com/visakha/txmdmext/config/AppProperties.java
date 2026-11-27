@@ -1,6 +1,9 @@
 package com.visakha.txmdmext.config;
 
+import java.time.Duration;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
@@ -10,11 +13,19 @@ public record AppProperties(
     @DefaultValue("1000") int batchSize,
     @DefaultValue("UTC") String zone,
     @DefaultValue("false") boolean runOnce,
-    @DefaultValue Idmc idmc) {
+    @DefaultValue Scan scan,
+    @DefaultValue Idmc idmc,
+    Map<String, List<String>> md5) {
 
   public ZoneId zoneId() {
     return ZoneId.of(zone);
   }
+
+  /**
+   * How often the event store is scanned, e.g. 1m, 5m, 10m, 1h, 2h. No default in code: it must be
+   * set in application.properties (txmdmext.scan.interval).
+   */
+  public record Scan(Duration interval) {}
 
   /**
    * Publish-job kick-off ("Pub EVT ZLV guest", a Business 360 job). Off by default. Credentials

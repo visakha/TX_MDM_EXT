@@ -3,6 +3,7 @@ package com.visakha.txmdmext.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -78,5 +79,42 @@ class EventParserTest {
     assertNull(root.group());
     assertNull(root.childId());
     assertEquals("last_name", root.fieldName());
+  }
+
+  @Test
+  void emptyPayloadIsRejectedWithClearMessage() {
+    EventParser parser = new EventParser();
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> parser.parse(new StoredEvent("bad-1", 1L, "")));
+    assertEquals("empty PAYLOAD", e.getMessage());
+    assertThrows(
+        IllegalArgumentException.class, () -> parser.parse(new StoredEvent("bad-2", 1L, null)));
+  }
+
+  @Test
+  void invalidJsonIsRejected() {
+    EventParser parser = new EventParser();
+    assertThrows(
+        RuntimeException.class, () -> parser.parse(new StoredEvent("bad-3", 1L, "{not json")));
+  }
+
+  @Test
+  void jsonThatIsNotAnObjectIsRejected() {
+    EventParser parser = new EventParser();
+    assertThrows(
+        IllegalArgumentException.class, () -> parser.parse(new StoredEvent("bad-4", 1L, "[1,2]")));
+  }
+
+  @Test
+  void sparseEventKeepsMissingFieldsNull() {
+    BusinessEvent e =
+        new EventParser().parse(new StoredEvent("sparse-1", 5L, "{\"businessId\":\"b1\"}"));
+    assertEquals("b1", e.businessId());
+    assertNull(e.dateOfChange());
+    assertEquals(EventType.OTHER, e.eventType());
+    assertEquals(ImpliedOperation.UNKNOWN, e.impliedOperation());
+    assertTrue(e.members().isEmpty());
+    assertEquals(5L, e.effectiveTime());
   }
 }

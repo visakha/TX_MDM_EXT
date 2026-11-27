@@ -59,4 +59,24 @@ class EventBatchTest {
     }
     throw new AssertionError("not found: " + businessId + " " + type);
   }
+
+  @Test
+  void duplicateId01WithIdenticalPayloadIsKeptOnce() {
+    List<StoredEvent> rows = Fixtures.rows();
+    StoredEvent dup =
+        rows.stream()
+            .filter(r -> rows.stream().filter(o -> o.id01().equals(r.id01())).count() > 1)
+            .findFirst()
+            .orElseThrow();
+    List<StoredEvent> same = rows.stream().filter(r -> r.id01().equals(dup.id01())).toList();
+    assertTrue(same.stream().allMatch(r -> r.payload().equals(dup.payload())));
+    assertEquals(1, EventBatch.dedupe(same).size());
+  }
+
+  @Test
+  void copyWithPayloadWinsOverEmptyCopy() {
+    StoredEvent empty = new StoredEvent("x", 1L, null);
+    StoredEvent full = new StoredEvent("x", 1L, "{}");
+    assertEquals(List.of(full), EventBatch.dedupe(List.of(empty, full)));
+  }
 }

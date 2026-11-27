@@ -21,4 +21,29 @@ public record MasterVersion(
     GuestRoot root,
     boolean deleted,
     String payloadJson,
-    Instant validFrom) {}
+    Instant validFrom,
+    String rowMd5) {
+
+  public MasterVersion withRowMd5(String md5) {
+    return new MasterVersion(
+        businessId,
+        activeBusinessId,
+        id01,
+        eventType,
+        impliedOperation,
+        correlationId,
+        dateOfChange,
+        userName,
+        eventSourceSystem,
+        mergedBusinessIds,
+        stateBase,
+        stateValidation,
+        stateCreateMode,
+        meta,
+        root,
+        deleted,
+        payloadJson,
+        validFrom,
+        md5);
+  }
+}

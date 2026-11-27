@@ -5,20 +5,28 @@ import com.visakha.txmdmext.event.BusinessEvent;
 import com.visakha.txmdmext.event.EventBatch;
 import com.visakha.txmdmext.event.EventParser;
 import com.visakha.txmdmext.event.StoredEvent;
+import com.visakha.txmdmext.history.FieldGroup;
 import com.visakha.txmdmext.history.HistoryPlan;
 import com.visakha.txmdmext.history.HistoryPlanner;
+import com.visakha.txmdmext.history.OpenChild;
 import com.visakha.txmdmext.history.PriorState;
+import com.visakha.txmdmext.store.ChildHistoryRepository;
 import com.visakha.txmdmext.store.DbTime;
 import com.visakha.txmdmext.store.EventStoreRepository;
+import com.visakha.txmdmext.store.LoadedEventRepository;
 import com.visakha.txmdmext.store.MasterHistoryRepository;
 import com.visakha.txmdmext.store.SourceHistoryRepository;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -32,7 +40,10 @@ public class EventProcessor {
 
   private final EventStoreRepository store;
   private final MasterHistoryRepository masters;
+  private final ChildHistoryRepository children;
   private final SourceHistoryRepository sources;
+  private final LoadedEventRepository loaded;
+  private final HistoryPlanner planner;
   private final HistoryWriter writer;
   private final EventParser parser;
   private final TransactionTemplate tx;
@@ -42,18 +53,24 @@ public class EventProcessor {
   public EventProcessor(
       EventStoreRepository store,
       MasterHistoryRepository masters,
+      ChildHistoryRepository children,
       SourceHistoryRepository sources,
+      LoadedEventRepository loaded,
+      HistoryPlanner planner,
       HistoryWriter writer,
       EventParser parser,
-      TransactionTemplate tx,
+      PlatformTransactionManager txManager,
       DbTime time,
       AppProperties props) {
     this.store = store;
     this.masters = masters;
+    this.children = children;
     this.sources = sources;
+    this.loaded = loaded;
+    this.planner = planner;
     this.writer = writer;
     this.parser = parser;
-    this.tx = tx;
+    this.tx = new TransactionTemplate(txManager);
     this.time = time;
     this.batchSize = props.batchSize();
   }
@@ -62,12 +79,12 @@ public class EventProcessor {
     List<StoredEvent> rows = store.findUnprocessed(batchSize);
     List<StoredEvent> distinct = EventBatch.dedupe(rows);
     List<BusinessEvent> events = new ArrayList<>();
-    int failed = 0;
+    List<String> failedIds = new ArrayList<>();
     for (StoredEvent row : distinct) {
       try {
         events.add(parser.parse(row));
       } catch (RuntimeException e) {
-        failed++;
+        failedIds.add(row.id01());
         LOG.error(
             "ID01 {}: payload could not be parsed, left unprocessed: {}",
             row.id01(),
@@ -92,7 +109,7 @@ public class EventProcessor {
           already++;
         }
       } catch (RuntimeException ex) {
-        failed++;
+        failedIds.add(e.id01());
         blocked.add(e.businessId());
         LOG.error(
             "ID01 {} (business id {}): load failed, rolled back: {}",
@@ -101,14 +118,14 @@ public class EventProcessor {
             ex.getMessage());
       }
     }
-    return new BatchResult(rows.size(), distinct.size(), loaded, already, failed, skipped);
+    return new BatchResult(rows.size(), distinct.size(), loaded, already, failedIds, skipped);
   }
 
   /** Returns true when history rows were written, false when the ID01 was already loaded. */
   private boolean loadOne(BusinessEvent e) {
-    boolean already = masters.eventAlreadyLoaded(e.id01());
+    boolean already = loaded.alreadyLoaded(e.id01());
     if (!already) {
-      HistoryPlan plan = HistoryPlanner.plan(e, prior(e.businessId()));
+      HistoryPlan plan = planner.plan(e, prior(e.businessId()));
       writer.write(plan);
     }
     store.markProcessed(e.id01(), time.now());
@@ -116,8 +133,9 @@ public class EventProcessor {
   }
 
   private PriorState prior(String businessId) {
+    Map<FieldGroup, Map<String, OpenChild>> open = new EnumMap<>(FieldGroup.class);
+    Arrays.stream(FieldGroup.values()).forEach(g -> open.put(g, children.openRows(g, businessId)));
     return new PriorState(
-        masters.currentPayload(businessId).map(parser::readTree).orElse(null),
-        sources.openMembers(businessId));
+        masters.currentMd5(businessId).orElse(null), open, sources.openMembers(businessId));
   }
 }

@@ -1,7 +1,9 @@
 # TX_MDM_EXT external configuration - EXAMPLE ONLY.
-# Copy this file OUTSIDE the repo (for example C:\tx-mdm-ext\application.properties),
-# fill in the real values there, and never commit the filled-in copy.
-# Run with:  java -jar tx-mdm-ext-0.1.0.jar --spring.config.location=file:C:/tx-mdm-ext/application.properties
+# Copy this file OUTSIDE the repo and name the copy exactly: application.properties
+# (for example C:\tx-mdm-ext\application.properties). Fill in the real values there and
+# never commit the filled-in copy.
+# Run with:
+#   java -jar tx-mdm-ext-0.1.0.jar --spring.config.location=file:C:/tx-mdm-ext/application.properties
 
 # --- Oracle (schema that holds ZLV_MDM_EVENTS_STORE and the EVT_* tables) ---
 spring.datasource.url=jdbc:oracle:thin:@//<host>:<port>/<service_name>
@@ -9,17 +11,39 @@ spring.datasource.username=<oracle_user>
 spring.datasource.password=<oracle_password>
 spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
 
-# HARD RULE: the app never runs DDL. Run ddl/V001__history_tables.sql by hand first.
+# HARD RULE: the app never runs DDL. Run ddl/V001 (and V002 if needed) by hand first.
 spring.sql.init.mode=never
 
-# --- Schedule (Spring cron: sec min hour day month weekday). Default: every hour at :05 ---
-txmdmext.schedule.cron=0 5 * * * *
-# true = one pass and exit (good for a first test); false = stay up and run on the schedule
+# --- Scan interval: how often the event store is read. REQUIRED, no default in code. ---
+# Format: a number plus a unit. Examples: 1m, 5m, 10m, 1h, 2h  (also 30s, 90m, 1d).
+# The next pass starts one interval after the previous pass ended.
+# The IDMC publish trigger (below) runs at the start of every pass, so it uses this same
+# interval; there is no separate publish interval.
+txmdmext.scan.interval=1h
+# true = one pass and exit (good for a first test); false = stay up and scan every interval
 txmdmext.run-once=true
 # Max event-store rows read per pass
 txmdmext.batch-size=1000
 # Zone used to turn event epoch-ms into TIMESTAMP values in the EVT_* tables
 txmdmext.zone=UTC
+
+# --- row_md5 formula per Type 2 history table (change data capture) ---
+# REQUIRED: one line per table, no default in code; startup fails on a missing table or an
+# unknown column. The value is the ORDERED column list that is hashed:
+#   md5( normalize(col1) | normalize(col2) | ... ), lowercase hex, stored in row_md5.
+#   normalize: null -> \N, text trimmed ('\' and '|' escaped), booleans 1/0, numbers plain,
+#   timestamps ISO-8601 UTC, dates ISO.
+# A new version is written only when the new row_md5 differs from the current row.
+# ORDER MATTERS. Changing a list changes all future hashes: old rows keep their old hash,
+# so expect one extra new version per record the first time each record changes afterwards.
+txmdmext.md5.EVT_MASTER_HIST=active_business_id,state_base,state_validation,state_create_mode,first_name,clns_first_name,last_name,clns_last_name,ffr_first_name,ffr_last_name,do_not_contact_ind,linkedin_url,last_touch_dtm,prev_last_touch_dtm,touch_incr,touch_notes,touch_cd_cd,touch_cd_nm,is_deleted
+txmdmext.md5.EVT_MASTER_PHONE_HIST=cntry_cd,ph_num,ph_typ_cd,ph_typ_nm,no_mrkt_calls,is_deleted
+txmdmext.md5.EVT_MASTER_SRC_ADDR_HIST=address_line_1,address_line_2,address_line_3,sub_bldg_nm,bldg_name,nearest_airport,bldg_mgmnt_company,city,state_cd_cd,state_cd_nm,address_status_cd_cd,address_status_cd_nm,address_typ_cd,address_typ_nm,postal_cd,country_cd_cd,country_cd_nm,is_deleted
+txmdmext.md5.EVT_MASTER_ADDR_HIST=default_indicator,address_type_cd,address_type_nm,usage_type_cd,usage_type_nm,address_line1,address_line2,address_line3,city,county,state_cd,state_nm,country_cd,country_nm,postal_code,postal_code_extension,coordinate_system,location_coordinate_desc,address_status_cd,address_status_nm,latitude,longitude,effective_start_date,effective_end_date,enriched_indicator_cd,enriched_indicator_nm,status_code,status_message,elevation,is_deleted
+txmdmext.md5.EVT_MASTER_ALT_ID_HIST=alt_id_val,alt_id_typ_cd,alt_id_typ_nm,active_ind,start_date,pri_segment_typ_cd,pri_segment_typ_nm,sec_segment_typ_cd,sec_segment_typ_nm,user_notes,is_deleted
+txmdmext.md5.EVT_MEMBER_HIST=business_id,source_system,source_pkey
+# EVT_SOURCE_HIST is not filled yet (needs the B360 source-record API); listed so it is ready.
+txmdmext.md5.EVT_SOURCE_HIST=business_id,xref_type,is_deleted,source_json
 
 # --- IDMC publish-job kick-off (OFF by default; leave false until tested) ---
 txmdmext.idmc.enabled=false
