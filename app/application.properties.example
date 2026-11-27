@@ -45,15 +45,22 @@ txmdmext.md5.EVT_ZLV_GUEST_MEMBER_HIST=business_id,source_system,source_pkey
 # EVT_ZLV_GUEST_SOURCE_HIST is not filled yet (needs the B360 source-record API); listed so it is ready.
 txmdmext.md5.EVT_ZLV_GUEST_SOURCE_HIST=business_id,xref_type,is_deleted,source_json
 
-# --- IDMC publish-job kick-off (OFF by default; leave false until tested) ---
-txmdmext.idmc.enabled=false
+# --- IDMC publish-job kick-off ---
+# Publish job in Vamsi's org (tested by him and working, 2026-11-26 afternoon):
+#   Job Name         = mdm_zlv_guest_pub_evts_001
+#   Job Process Type = Publish Business Events
+# Set enabled=true on your machine to have each pass start the publish job first.
+txmdmext.idmc.enabled=true
 txmdmext.idmc.login-url=https://<pod>.informaticacloud.com
 txmdmext.idmc.mdm-url=https://<region>-mdm.<pod>.informaticacloud.com
 txmdmext.idmc.username=<idmc_user>
 txmdmext.idmc.password=<idmc_password>
-# {kind} part of /job/public/api/v1/jobInstance/{kind} for a publish job - UNVERIFIED
-txmdmext.idmc.publish-job-kind=<kind>
-txmdmext.idmc.publish-job-definition-id=<job_definition_id>
+# {kind} part of /job/public/api/v1/jobInstance/{kind}: use the same value you used in your
+# tested call. The B360 API guide (Oct 2026) only lists Ingress, Egress and MatchMerge.
+txmdmext.idmc.publish-job-kind=<kind_from_your_tested_call>
+# Job definition ID of mdm_zlv_guest_pub_evts_001 (from your tested call). The app does NOT
+# look it up from the job name; it sends this value as-is.
+txmdmext.idmc.publish-job-definition-id=<job_definition_id_of_mdm_zlv_guest_pub_evts_001>
 
 logging.level.com.visakha.txmdmext=INFO
 
