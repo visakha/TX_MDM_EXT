@@ -1,8 +1,8 @@
 package com.visakha.txmdmext.event;
 
 /**
- * A dataDiff fieldPath split into parts. "x_phone[abc].ph_typ.Code" gives group x_phone, child abc,
- * field ph_typ.Code. A root field like "last_name" has no group and no child.
+ * A dataDiff fieldPath split into parts. "grp[abc].typ.Code" gives group grp, child abc, field
+ * typ.Code. A root field like "name" has no group and no child. Same rule for every model.
  */
 public record FieldPath(String group, String childId, String fieldName) {
 

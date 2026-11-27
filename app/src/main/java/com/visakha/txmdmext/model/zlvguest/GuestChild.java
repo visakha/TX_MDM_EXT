@@ -1,21 +1,19 @@
-package com.visakha.txmdmext.history;
+package com.visakha.txmdmext.model.zlvguest;
 
+import com.visakha.txmdmext.history.Lookup;
+import com.visakha.txmdmext.model.ChildRow;
 import java.time.Instant;
 import java.time.LocalDate;
 
-/**
- * One child row of a many-valued field group, keyed by its _id. Records compare by value, so
- * "changed" is simply !equals.
- */
-public sealed interface ChildRow {
+/** The child rows of the zlv_guest field groups. Records compare by value. */
+public sealed interface GuestChild extends ChildRow {
 
-  String childId();
-
+  @Override
   FieldGroup group();
 
   /** x_phone row. */
   record Phone(String childId, Long cntryCd, Long phNum, Lookup phTyp, Boolean noMrktCalls)
-      implements ChildRow {
+      implements GuestChild {
     @Override
     public FieldGroup group() {
       return FieldGroup.X_PHONE;
@@ -38,7 +36,7 @@ public sealed interface ChildRow {
       Lookup addressTyp,
       Long postalCd,
       Lookup countryCd)
-      implements ChildRow {
+      implements GuestChild {
     @Override
     public FieldGroup group() {
       return FieldGroup.X_SRC_ADDRESS;
@@ -71,7 +69,7 @@ public sealed interface ChildRow {
       String statusCode,
       String statusMessage,
       String elevation)
-      implements ChildRow {
+      implements GuestChild {
     @Override
     public FieldGroup group() {
       return FieldGroup.ADDRESS;
@@ -88,7 +86,7 @@ public sealed interface ChildRow {
       Lookup priSegmentTyp,
       Lookup secSegmentTyp,
       String userNotes)
-      implements ChildRow {
+      implements GuestChild {
     @Override
     public FieldGroup group() {
       return FieldGroup.X_ALT_ID;

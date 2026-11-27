@@ -1,6 +1,11 @@
 -- V001__history_tables.sql
 -- History tables for zlv_guest business events (TX_MDM_EXT).
 -- Same Oracle schema as ZLV_MDM_EVENTS_STORE. Oracle 12.2+ (identity columns).
+-- Table names carry the domain prefix EVT_ZLV_GUEST_ (other domains get their own prefix).
+-- Some names are longer than 30 characters (longest: EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST,
+-- 34). That needs Oracle 12.2+ with COMPATIBLE >= 12.2 (identifiers up to 128 bytes).
+-- This file is for a FRESH schema. A schema that already ran the first V001 (unprefixed
+-- EVT_* tables) runs V002__zlv_guest_tables.sql instead.
 --
 -- HARD RULE: CREATE only. No DROP, no TRUNCATE, no DELETE in this file, ever.
 -- Run by hand (Vamsi / DBA). The app never runs DDL.
@@ -20,7 +25,7 @@
 ------------------------------------------------------------------------
 -- 1. Master history: one row per master per event (root fields flattened)
 ------------------------------------------------------------------------
-CREATE TABLE EVT_MASTER_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MASTER_HIST (
     hist_id               NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id           VARCHAR2(64)   NOT NULL,
     active_business_id    VARCHAR2(64),
@@ -61,15 +66,15 @@ CREATE TABLE EVT_MASTER_HIST (
     valid_to              TIMESTAMP(3),
     is_current            NUMBER(1)      DEFAULT 1 NOT NULL,
     load_dtm              TIMESTAMP(3)   DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_master_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_master_hist UNIQUE (id01, business_id)
+    CONSTRAINT pk_evt_zlv_guest_master_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_master_hist UNIQUE (id01, business_id)
 );
-CREATE INDEX ix_evt_master_hist_bid ON EVT_MASTER_HIST (business_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_master_hist_bid ON EVT_ZLV_GUEST_MASTER_HIST (business_id, is_current);
 
 ------------------------------------------------------------------------
 -- 2. Master child history (field groups). Keyed by business_id + child _id
 ------------------------------------------------------------------------
-CREATE TABLE EVT_MASTER_PHONE_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MASTER_PHONE_HIST (
     hist_id        NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id    VARCHAR2(64)  NOT NULL,
     child_id       VARCHAR2(64)  NOT NULL,
@@ -85,12 +90,12 @@ CREATE TABLE EVT_MASTER_PHONE_HIST (
     valid_to       TIMESTAMP(3),
     is_current     NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm       TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_master_phone_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_master_phone_hist UNIQUE (id01, business_id, child_id)
+    CONSTRAINT pk_evt_zlv_guest_master_phone_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_master_phone_hist UNIQUE (id01, business_id, child_id)
 );
-CREATE INDEX ix_evt_master_phone_hist_bid ON EVT_MASTER_PHONE_HIST (business_id, child_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_master_phone_hist_bid ON EVT_ZLV_GUEST_MASTER_PHONE_HIST (business_id, child_id, is_current);
 
-CREATE TABLE EVT_MASTER_SRC_ADDR_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST (
     hist_id              NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id          VARCHAR2(64)  NOT NULL,
     child_id             VARCHAR2(64)  NOT NULL,
@@ -118,13 +123,13 @@ CREATE TABLE EVT_MASTER_SRC_ADDR_HIST (
     valid_to             TIMESTAMP(3),
     is_current           NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm             TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_master_src_addr_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_master_src_addr_hist UNIQUE (id01, business_id, child_id)
+    CONSTRAINT pk_evt_zlv_guest_master_src_addr_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_master_src_addr_hist UNIQUE (id01, business_id, child_id)
 );
-CREATE INDEX ix_evt_master_src_addr_hist_bid ON EVT_MASTER_SRC_ADDR_HIST (business_id, child_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_master_src_addr_hist_bid ON EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST (business_id, child_id, is_current);
 
 -- OOTB Address group (not x_src_address)
-CREATE TABLE EVT_MASTER_ADDR_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MASTER_ADDR_HIST (
     hist_id                  NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id              VARCHAR2(64)  NOT NULL,
     child_id                 VARCHAR2(64)  NOT NULL,
@@ -164,12 +169,12 @@ CREATE TABLE EVT_MASTER_ADDR_HIST (
     valid_to                 TIMESTAMP(3),
     is_current               NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm                 TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_master_addr_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_master_addr_hist UNIQUE (id01, business_id, child_id)
+    CONSTRAINT pk_evt_zlv_guest_master_addr_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_master_addr_hist UNIQUE (id01, business_id, child_id)
 );
-CREATE INDEX ix_evt_master_addr_hist_bid ON EVT_MASTER_ADDR_HIST (business_id, child_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_master_addr_hist_bid ON EVT_ZLV_GUEST_MASTER_ADDR_HIST (business_id, child_id, is_current);
 
-CREATE TABLE EVT_MASTER_ALT_ID_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MASTER_ALT_ID_HIST (
     hist_id             NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id         VARCHAR2(64)  NOT NULL,
     child_id            VARCHAR2(64)  NOT NULL,
@@ -190,15 +195,15 @@ CREATE TABLE EVT_MASTER_ALT_ID_HIST (
     valid_to            TIMESTAMP(3),
     is_current          NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm            TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_master_alt_id_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_master_alt_id_hist UNIQUE (id01, business_id, child_id)
+    CONSTRAINT pk_evt_zlv_guest_master_alt_id_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_master_alt_id_hist UNIQUE (id01, business_id, child_id)
 );
-CREATE INDEX ix_evt_master_alt_id_hist_bid ON EVT_MASTER_ALT_ID_HIST (business_id, child_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_master_alt_id_hist_bid ON EVT_ZLV_GUEST_MASTER_ALT_ID_HIST (business_id, child_id, is_current);
 
 ------------------------------------------------------------------------
 -- 3. Field-level change log: one row per dataDiff entry (append only)
 ------------------------------------------------------------------------
-CREATE TABLE EVT_FIELD_CHANGE (
+CREATE TABLE EVT_ZLV_GUEST_FIELD_CHANGE (
     change_id       NUMBER GENERATED ALWAYS AS IDENTITY,
     id01            VARCHAR2(255)  NOT NULL,
     seq_no          NUMBER(6)      NOT NULL,
@@ -213,16 +218,16 @@ CREATE TABLE EVT_FIELD_CHANGE (
     date_of_change  NUMBER(19),
     change_dtm      TIMESTAMP(3),
     load_dtm        TIMESTAMP(3)   DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_field_change PRIMARY KEY (change_id),
-    CONSTRAINT uq_evt_field_change UNIQUE (id01, seq_no)
+    CONSTRAINT pk_evt_zlv_guest_field_change PRIMARY KEY (change_id),
+    CONSTRAINT uq_evt_zlv_guest_field_change UNIQUE (id01, seq_no)
 );
-CREATE INDEX ix_evt_field_change_bid ON EVT_FIELD_CHANGE (business_id, change_dtm);
+CREATE INDEX ix_evt_zlv_guest_field_change_bid ON EVT_ZLV_GUEST_FIELD_CHANGE (business_id, change_dtm);
 
 ------------------------------------------------------------------------
 -- 4. Source side
 ------------------------------------------------------------------------
 -- 4a. Master-source membership history (from members[]), Type 2
-CREATE TABLE EVT_MEMBER_HIST (
+CREATE TABLE EVT_ZLV_GUEST_MEMBER_HIST (
     hist_id         NUMBER GENERATED ALWAYS AS IDENTITY,
     business_id     VARCHAR2(64)  NOT NULL,
     source_system   VARCHAR2(128) NOT NULL,
@@ -234,14 +239,14 @@ CREATE TABLE EVT_MEMBER_HIST (
     valid_to        TIMESTAMP(3),
     is_current      NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm        TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_member_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_member_hist UNIQUE (id01_opened, business_id, source_system, source_pkey)
+    CONSTRAINT pk_evt_zlv_guest_member_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_member_hist UNIQUE (id01_opened, business_id, source_system, source_pkey)
 );
-CREATE INDEX ix_evt_member_hist_src ON EVT_MEMBER_HIST (source_system, source_pkey, is_current);
-CREATE INDEX ix_evt_member_hist_bid ON EVT_MEMBER_HIST (business_id, is_current);
+CREATE INDEX ix_evt_zlv_guest_member_hist_src ON EVT_ZLV_GUEST_MEMBER_HIST (source_system, source_pkey, is_current);
+CREATE INDEX ix_evt_zlv_guest_member_hist_bid ON EVT_ZLV_GUEST_MEMBER_HIST (business_id, is_current);
 
 -- 4b. Source record change log (from affectedXrefs[]), append only
-CREATE TABLE EVT_XREF_CHANGE (
+CREATE TABLE EVT_ZLV_GUEST_XREF_CHANGE (
     change_id          NUMBER GENERATED ALWAYS AS IDENTITY,
     id01               VARCHAR2(255) NOT NULL,
     business_id        VARCHAR2(64),
@@ -254,15 +259,15 @@ CREATE TABLE EVT_XREF_CHANGE (
     date_of_change     NUMBER(19),
     change_dtm         TIMESTAMP(3),
     load_dtm           TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_xref_change PRIMARY KEY (change_id),
-    CONSTRAINT uq_evt_xref_change UNIQUE (id01, source_system, source_pkey)
+    CONSTRAINT pk_evt_zlv_guest_xref_change PRIMARY KEY (change_id),
+    CONSTRAINT uq_evt_zlv_guest_xref_change UNIQUE (id01, source_system, source_pkey)
 );
-CREATE INDEX ix_evt_xref_change_src ON EVT_XREF_CHANGE (source_system, source_pkey, change_dtm);
+CREATE INDEX ix_evt_zlv_guest_xref_change_src ON EVT_ZLV_GUEST_XREF_CHANGE (source_system, source_pkey, change_dtm);
 
 -- 4c. Source record value history, Type 2.
 -- Events carry only source keys, not source values. This table is filled by
 -- reading the B360 source-record API for each affected xref after the event.
-CREATE TABLE EVT_SOURCE_HIST (
+CREATE TABLE EVT_ZLV_GUEST_SOURCE_HIST (
     hist_id         NUMBER GENERATED ALWAYS AS IDENTITY,
     source_system   VARCHAR2(128) NOT NULL,
     source_pkey     VARCHAR2(255) NOT NULL,
@@ -276,7 +281,7 @@ CREATE TABLE EVT_SOURCE_HIST (
     valid_to        TIMESTAMP(3),
     is_current      NUMBER(1)     DEFAULT 1 NOT NULL,
     load_dtm        TIMESTAMP(3)  DEFAULT SYSTIMESTAMP NOT NULL,
-    CONSTRAINT pk_evt_source_hist PRIMARY KEY (hist_id),
-    CONSTRAINT uq_evt_source_hist UNIQUE (id01, source_system, source_pkey)
+    CONSTRAINT pk_evt_zlv_guest_source_hist PRIMARY KEY (hist_id),
+    CONSTRAINT uq_evt_zlv_guest_source_hist UNIQUE (id01, source_system, source_pkey)
 );
-CREATE INDEX ix_evt_source_hist_src ON EVT_SOURCE_HIST (source_system, source_pkey, is_current);
+CREATE INDEX ix_evt_zlv_guest_source_hist_src ON EVT_ZLV_GUEST_SOURCE_HIST (source_system, source_pkey, is_current);

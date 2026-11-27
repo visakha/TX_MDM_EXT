@@ -2,8 +2,8 @@ package com.visakha.txmdmext.history;
 
 import com.visakha.txmdmext.config.TestConfig;
 import com.visakha.txmdmext.event.BusinessEvent;
+import com.visakha.txmdmext.model.ChildGroup;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -19,10 +19,10 @@ final class InMemoryHistory {
 
   record ChildEvent(String businessId, String id01, ChildVersion version) {}
 
-  final HistoryPlanner planner = new HistoryPlanner(TestConfig.exampleRowHash());
+  final HistoryPlanner planner = new HistoryPlanner(TestConfig.exampleRowHash(), TestConfig.MODEL);
   final Map<String, String> masterMd5 = new HashMap<>();
   final Map<String, List<MasterVersion>> masterVersions = new HashMap<>();
-  final Map<String, Map<FieldGroup, Map<String, OpenChild>>> openChildren = new HashMap<>();
+  final Map<String, Map<ChildGroup, Map<String, OpenChild>>> openChildren = new HashMap<>();
   final Map<String, Set<MemberKey>> openMembers = new HashMap<>();
   final List<ChildEvent> childEvents = new ArrayList<>();
   final List<FieldChangeRow> fieldChanges = new ArrayList<>();
@@ -48,8 +48,8 @@ final class InMemoryHistory {
       masterVersions.computeIfAbsent(bid, k -> new ArrayList<>()).add(plan.master());
       masterMd5.put(bid, plan.master().rowMd5());
     }
-    Map<FieldGroup, Map<String, OpenChild>> open =
-        openChildren.computeIfAbsent(bid, k -> new EnumMap<>(FieldGroup.class));
+    Map<ChildGroup, Map<String, OpenChild>> open =
+        openChildren.computeIfAbsent(bid, k -> new HashMap<>());
     for (ChildVersion v : plan.childVersions()) {
       childEvents.add(new ChildEvent(bid, e.id01(), v));
       Map<String, OpenChild> group =
@@ -84,7 +84,7 @@ final class InMemoryHistory {
         .toList();
   }
 
-  long openChildren(String businessId, FieldGroup group) {
+  long openChildren(String businessId, ChildGroup group) {
     return openChildren.getOrDefault(businessId, Map.of()).getOrDefault(group, Map.of()).size();
   }
 

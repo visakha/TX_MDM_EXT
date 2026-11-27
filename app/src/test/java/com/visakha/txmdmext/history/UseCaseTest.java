@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.visakha.txmdmext.event.Fixtures;
+import com.visakha.txmdmext.model.zlvguest.FieldGroup;
+import com.visakha.txmdmext.model.zlvguest.GuestChild;
+import com.visakha.txmdmext.model.zlvguest.GuestRoot;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -56,7 +59,7 @@ class UseCaseTest {
   void uc6UiCreateViaC360DefaultSystem() {
     HistoryPlan p = h.planOf("6b092127", "100000000000183");
     assertNotNull(p.master());
-    assertEquals("UC6ui", p.master().root().lastName());
+    assertEquals("UC6ui", ((GuestRoot) p.master().root()).lastName());
     assertTrue(p.childVersions().isEmpty());
     XrefChangeRow x = xref("6b092127", "100000000000183");
     assertEquals("c360.default.system", x.sourceSystem());
@@ -76,7 +79,7 @@ class UseCaseTest {
     assertEquals("DATA", x.xrefType());
     assertEquals("CREATED", x.xrefChange());
     assertEquals("ADDED", x.membershipChange());
-    ChildRow.Phone ph = (ChildRow.Phone) onlyChild("6b092107", B172).row();
+    GuestChild.Phone ph = (GuestChild.Phone) onlyChild("6b092107", B172).row();
     assertEquals("479cb3c697d943699bf266ca9a23a89e", ph.childId());
     assertEquals(5125550701L, ph.phNum());
     assertEquals("Mobile", ph.phTyp().code());
@@ -89,7 +92,7 @@ class UseCaseTest {
     assertEquals("zlv_eci", x.sourceSystem());
     assertEquals("EVT-UC7-ECI-1", x.sourcePkey());
     assertEquals("DATA", x.xrefType());
-    ChildRow.Phone ph = (ChildRow.Phone) onlyChild("6b092124", B192).row();
+    GuestChild.Phone ph = (GuestChild.Phone) onlyChild("6b092124", B192).row();
     assertEquals("7ddf5b15d8e24f468ecbc53c60c5f812", ph.childId());
     assertEquals(5125550702L, ph.phNum());
     assertEquals(Set.of(ECI_7), members(B192));
@@ -98,7 +101,7 @@ class UseCaseTest {
   @Test
   void uc8TtfRootUpdate() {
     HistoryPlan p = h.planOf("6b092144", B172);
-    assertEquals("UC7ttfUpd", p.master().root().lastName());
+    assertEquals("UC7ttfUpd", ((GuestRoot) p.master().root()).lastName());
     assertEquals(2, p.fieldChanges().size());
     FieldChangeRow c = change("6b092144", B172, "last_name");
     assertEquals("UC7ttf", c.oldValue());
@@ -110,7 +113,7 @@ class UseCaseTest {
   @Test
   void uc8EciRootUpdate() {
     HistoryPlan p = h.planOf("6b09214e", B192);
-    assertEquals("UC7eciUpd", p.master().root().lastName());
+    assertEquals("UC7eciUpd", ((GuestRoot) p.master().root()).lastName());
     assertEquals("UC7eci", change("6b09214e", B192, "last_name").oldValue());
     assertEquals("zlv_eci", xref("6b09214e", B192).sourceSystem());
   }
@@ -118,7 +121,7 @@ class UseCaseTest {
   @Test
   void uc5TtfAddSourceAddress() {
     ChildVersion v = onlyChild("6b092152", B172);
-    ChildRow.SrcAddress a = (ChildRow.SrcAddress) v.row();
+    GuestChild.SrcAddress a = (GuestChild.SrcAddress) v.row();
     assertFalse(v.deleted());
     assertEquals("7da173a5742d4f689b6b08acccbc26e2", a.childId());
     assertEquals("100 Test Ln", a.addressLine1());
@@ -130,7 +133,7 @@ class UseCaseTest {
 
   @Test
   void uc5EciAddSourceAddress() {
-    ChildRow.SrcAddress a = (ChildRow.SrcAddress) onlyChild("6b092155", B192).row();
+    GuestChild.SrcAddress a = (GuestChild.SrcAddress) onlyChild("6b092155", B192).row();
     assertEquals("d96a50d6c077405b893085920789e242", a.childId());
     assertEquals("200 Test Ln", a.addressLine1());
   }
@@ -139,7 +142,7 @@ class UseCaseTest {
   void uc17TtfAddSecondPhoneLeavesFirstUntouched() {
     ChildVersion v = onlyChild("6b092158", B172);
     assertEquals("2dca242eedb34fa98eacbaa17dd87212", v.row().childId());
-    assertEquals(5125550711L, ((ChildRow.Phone) v.row()).phNum());
+    assertEquals(5125550711L, ((GuestChild.Phone) v.row()).phNum());
     assertEquals(1, h.childEventsOf(B172, "479cb3c697d943699bf266ca9a23a89e").size());
   }
 
@@ -163,7 +166,7 @@ class UseCaseTest {
 
   @Test
   void uc19TtfAddAltIdTin() {
-    ChildRow.AltId a = (ChildRow.AltId) onlyChild("6b092178", B172).row();
+    GuestChild.AltId a = (GuestChild.AltId) onlyChild("6b092178", B172).row();
     assertEquals("d1fa3e1963554a8b85bb451fec0c4fa3", a.childId());
     assertEquals("9999", a.altIdVal());
     assertEquals("TIN", a.altIdTyp().code());
@@ -178,13 +181,13 @@ class UseCaseTest {
     assertEquals(1, h.openChildren(B172, FieldGroup.X_PHONE));
     assertEquals(1, h.openChildren(B172, FieldGroup.X_SRC_ADDRESS));
     assertEquals(1, h.openChildren(B172, FieldGroup.X_ALT_ID));
-    assertEquals("UC7ttfUpd", h.currentMaster(B172).root().lastName());
+    assertEquals("UC7ttfUpd", ((GuestRoot) h.currentMaster(B172).root()).lastName());
   }
 
   @Test
   void uc20EciLookupMobileToFax() {
     ChildVersion v = onlyChild("6b09217c", B192);
-    ChildRow.Phone ph = (ChildRow.Phone) v.row();
+    GuestChild.Phone ph = (GuestChild.Phone) v.row();
     assertEquals("7ddf5b15d8e24f468ecbc53c60c5f812", ph.childId());
     assertEquals(new Lookup("Fax", "Fax"), ph.phTyp());
     FieldChangeRow c =
@@ -203,7 +206,7 @@ class UseCaseTest {
     assertEquals("true", dnc.newValue());
     assertEquals("CREATED", incr.changeType());
     assertEquals("1.5", incr.newValue());
-    GuestRoot r = h.planOf("6b09217f", B192).master().root();
+    GuestRoot r = (GuestRoot) h.planOf("6b09217f", B192).master().root();
     assertEquals(Boolean.TRUE, r.doNotContactInd());
     assertEquals(1.5d, r.touchIncr());
   }
@@ -214,12 +217,12 @@ class UseCaseTest {
     assertEquals("DELETED", c.changeType());
     assertEquals("UC7eciUpd", c.oldValue());
     assertNull(c.newValue());
-    assertNull(h.planOf("6b092182", B192).master().root().lastName());
+    assertNull(((GuestRoot) h.planOf("6b092182", B192).master().root()).lastName());
   }
 
   @Test
   void uc21FinalStateOf192() {
-    GuestRoot r = h.currentMaster(B192).root();
+    GuestRoot r = (GuestRoot) h.currentMaster(B192).root();
     assertNull(r.lastName());
     assertEquals(Boolean.TRUE, r.doNotContactInd());
     assertEquals(1.5d, r.touchIncr());
@@ -304,7 +307,7 @@ class UseCaseTest {
   @Test
   void olderSampleJackT180() {
     HistoryPlan p = h.planOf("6b0908bf", "100000000000180");
-    assertEquals("JackT", p.master().root().firstName());
+    assertEquals("JackT", ((GuestRoot) p.master().root()).firstName());
     XrefChangeRow x = xref("6b0908bf", "100000000000180");
     assertEquals("PATCH", x.xrefType());
     // UC26 shape: the xref says 191, history stays on the event master 180.
@@ -314,7 +317,9 @@ class UseCaseTest {
 
   @Test
   void olderSampleHenry190() {
-    assertEquals("Henry T3", h.planOf("6b09106d", "100000000000190").master().root().firstName());
+    assertEquals(
+        "Henry T3",
+        ((GuestRoot) h.planOf("6b09106d", "100000000000190").master().root()).firstName());
     assertEquals("CREATED", xref("6b09106d", "100000000000190").xrefChange());
   }
 
@@ -322,15 +327,16 @@ class UseCaseTest {
   void olderSamples171BothLand() {
     HistoryPlan first = h.planOf("6b0917c8", "100000000000171");
     HistoryPlan second = h.planOf("6b0919d4", "100000000000171");
-    assertEquals("y this kolavaridhi", first.master().root().clnsFirstName());
-    ChildRow.Phone ph = (ChildRow.Phone) second.childVersions().getFirst().row();
+    assertEquals("y this kolavaridhi", ((GuestRoot) first.master().root()).clnsFirstName());
+    GuestChild.Phone ph = (GuestChild.Phone) second.childVersions().getFirst().row();
     assertEquals("d7be8f20468b4238b13ccf42765a5a87", ph.childId());
     assertEquals(12334455001L, ph.phNum());
   }
 
   @Test
   void olderSample160SourceAddressLands() {
-    ChildRow.SrcAddress a = (ChildRow.SrcAddress) onlyChild("6b091a40", "100000000000160").row();
+    GuestChild.SrcAddress a =
+        (GuestChild.SrcAddress) onlyChild("6b091a40", "100000000000160").row();
     assertEquals("8ca983a25f7a4d5db9728a8b28debccc", a.childId());
     assertEquals("1200 Main Rd", a.addressLine1());
     assertEquals(13, h.planOf("6b091a40", "100000000000160").fieldChanges().size());

@@ -1,17 +1,18 @@
 package com.visakha.txmdmext.store;
 
 import com.visakha.txmdmext.history.FieldChangeRow;
+import com.visakha.txmdmext.model.EntityModel;
 import java.sql.Types;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** EVT_FIELD_CHANGE: one row per dataDiff entry, append only. */
+/** Field change log of the model (EVT_<DOMAIN>_FIELD_CHANGE): one row per dataDiff entry. */
 @Repository
 public class FieldChangeRepository {
 
   static final String INSERT =
       """
-      INSERT INTO EVT_FIELD_CHANGE (
+      INSERT INTO %s (
         id01, seq_no, business_id, field_path, field_group, child_id, field_name,
         change_type, old_value, new_value, date_of_change, change_dtm)
       VALUES (
@@ -21,14 +22,16 @@ public class FieldChangeRepository {
 
   private final JdbcClient jdbc;
   private final DbTime time;
+  private final String insert;
 
-  public FieldChangeRepository(JdbcClient jdbc, DbTime time) {
+  public FieldChangeRepository(JdbcClient jdbc, DbTime time, EntityModel model) {
     this.jdbc = jdbc;
     this.time = time;
+    this.insert = INSERT.formatted(SqlNames.table(model.fieldChangeTable()));
   }
 
   public void insert(FieldChangeRow c) {
-    jdbc.sql(INSERT)
+    jdbc.sql(insert)
         .param("id01", c.id01(), Types.VARCHAR)
         .param("seqNo", c.seqNo(), Types.INTEGER)
         .param("businessId", c.businessId(), Types.VARCHAR)

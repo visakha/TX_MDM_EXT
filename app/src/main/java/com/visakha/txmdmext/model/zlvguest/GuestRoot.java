@@ -1,5 +1,7 @@
-package com.visakha.txmdmext.history;
+package com.visakha.txmdmext.model.zlvguest;
 
+import com.visakha.txmdmext.history.Lookup;
+import com.visakha.txmdmext.model.EntityRoot;
 import java.time.Instant;
 
 /** Root (single-valued) zlv_guest fields from the payload. */
@@ -16,4 +18,5 @@ public record GuestRoot(
     Instant prevLastTouchDtm,
     Double touchIncr,
     String touchNotes,
-    Lookup touchCd) {}
+    Lookup touchCd)
+    implements EntityRoot {}

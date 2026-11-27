@@ -2,7 +2,7 @@ package com.visakha.txmdmext.history;
 
 import java.time.Instant;
 
-/** One EVT_FIELD_CHANGE row (append only), from one dataDiff entry. */
+/** One field change log row (append only), from one dataDiff entry. */
 public record FieldChangeRow(
     String id01,
     int seqNo,

@@ -1,10 +1,11 @@
-package com.visakha.txmdmext.store;
+package com.visakha.txmdmext.model.zlvguest;
 
-import com.visakha.txmdmext.history.ChildRow;
 import com.visakha.txmdmext.history.ChildVersion;
-import com.visakha.txmdmext.history.FieldGroup;
 import com.visakha.txmdmext.history.Lookup;
 import com.visakha.txmdmext.history.OpenChild;
+import com.visakha.txmdmext.model.ChildGroup;
+import com.visakha.txmdmext.store.ChildStore;
+import com.visakha.txmdmext.store.DbTime;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -16,16 +17,17 @@ import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** The four child-group history tables. Type 2: close the open row, then append. */
+/** The four zlv_guest child-group history tables. Type 2: close the open row, then append. */
 @Repository
-public class ChildHistoryRepository {
+public class GuestChildRepository implements ChildStore {
 
   static final String OPEN_PHONES =
       """
       SELECT child_id, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls, row_md5
-        FROM EVT_MASTER_PHONE_HIST
+        FROM %s
        WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
-      """;
+      """
+          .formatted(GuestTables.MASTER_PHONE);
 
   static final String OPEN_SRC_ADDRS =
       """
@@ -33,9 +35,10 @@ public class ChildHistoryRepository {
              nearest_airport, bldg_mgmnt_company, city, state_cd_cd, state_cd_nm,
              address_status_cd_cd, address_status_cd_nm, address_typ_cd, address_typ_nm,
              postal_cd, country_cd_cd, country_cd_nm, row_md5
-        FROM EVT_MASTER_SRC_ADDR_HIST
+        FROM %s
        WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
-      """;
+      """
+          .formatted(GuestTables.MASTER_SRC_ADDR);
 
   static final String OPEN_ADDRS =
       """
@@ -46,56 +49,63 @@ public class ChildHistoryRepository {
              latitude, longitude, effective_start_date, effective_end_date,
              enriched_indicator_cd, enriched_indicator_nm, status_code, status_message,
              elevation, row_md5
-        FROM EVT_MASTER_ADDR_HIST
+        FROM %s
        WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
-      """;
+      """
+          .formatted(GuestTables.MASTER_ADDR);
 
   static final String OPEN_ALT_IDS =
       """
       SELECT child_id, alt_id_val, alt_id_typ_cd, alt_id_typ_nm, active_ind, start_date,
              pri_segment_typ_cd, pri_segment_typ_nm, sec_segment_typ_cd, sec_segment_typ_nm,
              user_notes, row_md5
-        FROM EVT_MASTER_ALT_ID_HIST
+        FROM %s
        WHERE business_id = :businessId AND is_current = 1 AND is_deleted = 0
-      """;
+      """
+          .formatted(GuestTables.MASTER_ALT_ID);
 
   static final String CLOSE_PHONE =
       """
-      UPDATE EVT_MASTER_PHONE_HIST SET valid_to = :validTo, is_current = 0
+      UPDATE %s SET valid_to = :validTo, is_current = 0
        WHERE business_id = :businessId AND child_id = :childId AND is_current = 1
-      """;
+      """
+          .formatted(GuestTables.MASTER_PHONE);
 
   static final String CLOSE_SRC_ADDR =
       """
-      UPDATE EVT_MASTER_SRC_ADDR_HIST SET valid_to = :validTo, is_current = 0
+      UPDATE %s SET valid_to = :validTo, is_current = 0
        WHERE business_id = :businessId AND child_id = :childId AND is_current = 1
-      """;
+      """
+          .formatted(GuestTables.MASTER_SRC_ADDR);
 
   static final String CLOSE_ADDR =
       """
-      UPDATE EVT_MASTER_ADDR_HIST SET valid_to = :validTo, is_current = 0
+      UPDATE %s SET valid_to = :validTo, is_current = 0
        WHERE business_id = :businessId AND child_id = :childId AND is_current = 1
-      """;
+      """
+          .formatted(GuestTables.MASTER_ADDR);
 
   static final String CLOSE_ALT_ID =
       """
-      UPDATE EVT_MASTER_ALT_ID_HIST SET valid_to = :validTo, is_current = 0
+      UPDATE %s SET valid_to = :validTo, is_current = 0
        WHERE business_id = :businessId AND child_id = :childId AND is_current = 1
-      """;
+      """
+          .formatted(GuestTables.MASTER_ALT_ID);
 
   static final String INSERT_PHONE =
       """
-      INSERT INTO EVT_MASTER_PHONE_HIST (
+      INSERT INTO %s (
         business_id, child_id, id01, cntry_cd, ph_num, ph_typ_cd, ph_typ_nm, no_mrkt_calls,
         is_deleted, row_md5, valid_from, valid_to, is_current)
       VALUES (
         :businessId, :childId, :id01, :cntryCd, :phNum, :phTypCd, :phTypNm, :noMrktCalls,
         :isDeleted, :rowMd5, :validFrom, NULL, 1)
-      """;
+      """
+          .formatted(GuestTables.MASTER_PHONE);
 
   static final String INSERT_SRC_ADDR =
       """
-      INSERT INTO EVT_MASTER_SRC_ADDR_HIST (
+      INSERT INTO %s (
         business_id, child_id, id01, address_line_1, address_line_2, address_line_3,
         sub_bldg_nm, bldg_name, nearest_airport, bldg_mgmnt_company, city,
         state_cd_cd, state_cd_nm, address_status_cd_cd, address_status_cd_nm,
@@ -107,11 +117,12 @@ public class ChildHistoryRepository {
         :stateCdCd, :stateCdNm, :addressStatusCdCd, :addressStatusCdNm,
         :addressTypCd, :addressTypNm, :postalCd, :countryCdCd, :countryCdNm,
         :isDeleted, :rowMd5, :validFrom, NULL, 1)
-      """;
+      """
+          .formatted(GuestTables.MASTER_SRC_ADDR);
 
   static final String INSERT_ADDR =
       """
-      INSERT INTO EVT_MASTER_ADDR_HIST (
+      INSERT INTO %s (
         business_id, child_id, id01, default_indicator, address_type_cd, address_type_nm,
         usage_type_cd, usage_type_nm, address_line1, address_line2, address_line3, city, county,
         state_cd, state_nm, country_cd, country_nm, postal_code, postal_code_extension,
@@ -127,11 +138,12 @@ public class ChildHistoryRepository {
         :latitude, :longitude, :effectiveStartDate, :effectiveEndDate,
         :enrichedIndicatorCd, :enrichedIndicatorNm, :statusCode, :statusMessage, :elevation,
         :isDeleted, :rowMd5, :validFrom, NULL, 1)
-      """;
+      """
+          .formatted(GuestTables.MASTER_ADDR);
 
   static final String INSERT_ALT_ID =
       """
-      INSERT INTO EVT_MASTER_ALT_ID_HIST (
+      INSERT INTO %s (
         business_id, child_id, id01, alt_id_val, alt_id_typ_cd, alt_id_typ_nm, active_ind,
         start_date, pri_segment_typ_cd, pri_segment_typ_nm, sec_segment_typ_cd,
         sec_segment_typ_nm, user_notes, is_deleted, row_md5, valid_from, valid_to, is_current)
@@ -139,22 +151,23 @@ public class ChildHistoryRepository {
         :businessId, :childId, :id01, :altIdVal, :altIdTypCd, :altIdTypNm, :activeInd,
         :startDate, :priSegmentTypCd, :priSegmentTypNm, :secSegmentTypCd,
         :secSegmentTypNm, :userNotes, :isDeleted, :rowMd5, :validFrom, NULL, 1)
-      """;
+      """
+          .formatted(GuestTables.MASTER_ALT_ID);
 
   private static final Lookup NO_LOOKUP = new Lookup(null, null);
 
   private final JdbcClient jdbc;
   private final DbTime time;
 
-  public ChildHistoryRepository(JdbcClient jdbc, DbTime time) {
+  public GuestChildRepository(JdbcClient jdbc, DbTime time) {
     this.jdbc = jdbc;
     this.time = time;
   }
 
-  /** Open (current, not deleted) rows of one group, by child _id, read back as stored. */
-  public Map<String, OpenChild> openRows(FieldGroup group, String businessId) {
+  @Override
+  public Map<String, OpenChild> openRows(ChildGroup group, String businessId) {
     String sql =
-        switch (group) {
+        switch ((FieldGroup) group) {
           case X_PHONE -> OPEN_PHONES;
           case X_SRC_ADDRESS -> OPEN_SRC_ADDRS;
           case ADDRESS -> OPEN_ADDRS;
@@ -163,25 +176,26 @@ public class ChildHistoryRepository {
     List<OpenChild> rows =
         jdbc.sql(sql)
             .param("businessId", businessId)
-            .query((rs, n) -> new OpenChild(row(group, rs), trim(rs.getString("row_md5"))))
+            .query((rs, n) ->
+                new OpenChild(row((FieldGroup) group, rs), trim(rs.getString("row_md5"))))
             .list();
     Map<String, OpenChild> byId = new LinkedHashMap<>();
     rows.forEach(o -> byId.put(o.row().childId(), o));
     return byId;
   }
 
-  private ChildRow row(FieldGroup group, ResultSet rs) throws SQLException {
+  private GuestChild row(FieldGroup group, ResultSet rs) throws SQLException {
     String id = rs.getString("child_id");
     return switch (group) {
       case X_PHONE ->
-          new ChildRow.Phone(
+          new GuestChild.Phone(
               id,
               whole(rs, "cntry_cd"),
               whole(rs, "ph_num"),
               lookup(rs, "ph_typ_cd", "ph_typ_nm"),
               bool(rs, "no_mrkt_calls"));
       case X_SRC_ADDRESS ->
-          new ChildRow.SrcAddress(
+          new GuestChild.SrcAddress(
               id,
               rs.getString("address_line_1"),
               rs.getString("address_line_2"),
@@ -197,7 +211,7 @@ public class ChildHistoryRepository {
               whole(rs, "postal_cd"),
               lookup(rs, "country_cd_cd", "country_cd_nm"));
       case ADDRESS ->
-          new ChildRow.Address(
+          new GuestChild.Address(
               id,
               bool(rs, "default_indicator"),
               lookup(rs, "address_type_cd", "address_type_nm"),
@@ -223,7 +237,7 @@ public class ChildHistoryRepository {
               rs.getString("status_message"),
               rs.getString("elevation"));
       case X_ALT_ID ->
-          new ChildRow.AltId(
+          new GuestChild.AltId(
               id,
               rs.getString("alt_id_val"),
               lookup(rs, "alt_id_typ_cd", "alt_id_typ_nm"),
@@ -260,10 +274,11 @@ public class ChildHistoryRepository {
     return s == null ? null : s.trim();
   }
 
+  @Override
   public void closeCurrent(
-      FieldGroup group, String businessId, String childId, LocalDateTime validTo) {
+      ChildGroup group, String businessId, String childId, LocalDateTime validTo) {
     String sql =
-        switch (group) {
+        switch ((FieldGroup) group) {
           case X_PHONE -> CLOSE_PHONE;
           case X_SRC_ADDRESS -> CLOSE_SRC_ADDR;
           case ADDRESS -> CLOSE_ADDR;
@@ -276,18 +291,19 @@ public class ChildHistoryRepository {
         .update();
   }
 
+  @Override
   public void insert(
       String businessId, String id01, ChildVersion version, LocalDateTime validFrom) {
     JdbcClient.StatementSpec spec =
-        switch (version.row()) {
-          case ChildRow.Phone p ->
+        switch ((GuestChild) version.row()) {
+          case GuestChild.Phone p ->
               jdbc.sql(INSERT_PHONE)
                   .param("cntryCd", p.cntryCd(), Types.BIGINT)
                   .param("phNum", p.phNum(), Types.BIGINT)
                   .param("phTypCd", code(p.phTyp()), Types.VARCHAR)
                   .param("phTypNm", name(p.phTyp()), Types.VARCHAR)
                   .param("noMrktCalls", DbTime.flag(p.noMrktCalls()), Types.INTEGER);
-          case ChildRow.SrcAddress a ->
+          case GuestChild.SrcAddress a ->
               jdbc.sql(INSERT_SRC_ADDR)
                   .param("addressLine1", a.addressLine1(), Types.VARCHAR)
                   .param("addressLine2", a.addressLine2(), Types.VARCHAR)
@@ -306,7 +322,7 @@ public class ChildHistoryRepository {
                   .param("postalCd", a.postalCd(), Types.BIGINT)
                   .param("countryCdCd", code(a.countryCd()), Types.VARCHAR)
                   .param("countryCdNm", name(a.countryCd()), Types.VARCHAR);
-          case ChildRow.Address a ->
+          case GuestChild.Address a ->
               jdbc.sql(INSERT_ADDR)
                   .param("defaultIndicator", DbTime.flag(a.defaultIndicator()), Types.INTEGER)
                   .param("addressTypeCd", code(a.addressType()), Types.VARCHAR)
@@ -337,7 +353,7 @@ public class ChildHistoryRepository {
                   .param("statusCode", a.statusCode(), Types.VARCHAR)
                   .param("statusMessage", a.statusMessage(), Types.VARCHAR)
                   .param("elevation", a.elevation(), Types.VARCHAR);
-          case ChildRow.AltId a ->
+          case GuestChild.AltId a ->
               jdbc.sql(INSERT_ALT_ID)
                   .param("altIdVal", a.altIdVal(), Types.VARCHAR)
                   .param("altIdTypCd", code(a.altIdTyp()), Types.VARCHAR)

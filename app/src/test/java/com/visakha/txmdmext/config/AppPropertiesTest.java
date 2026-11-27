@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.visakha.txmdmext.history.HistTable;
 import com.visakha.txmdmext.job.ScanJob;
 import java.time.Duration;
 import java.util.HashMap;
@@ -60,6 +59,7 @@ class AppPropertiesTest {
     AppProperties p = TestConfig.example();
     assertFalse(p.idmc().enabled());
     assertEquals(Duration.ofHours(1), ScanJob.interval(p));
-    assertEquals(HistTable.values().length, TestConfig.exampleRowHash().tables().size());
+    assertEquals(
+        TestConfig.MODEL.hashableColumns().size(), TestConfig.exampleRowHash().tables().size());
   }
 }

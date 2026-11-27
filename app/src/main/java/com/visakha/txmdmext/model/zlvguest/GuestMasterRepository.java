@@ -1,40 +1,43 @@
-package com.visakha.txmdmext.store;
+package com.visakha.txmdmext.model.zlvguest;
 
-import com.visakha.txmdmext.history.GuestRoot;
 import com.visakha.txmdmext.history.Lookup;
 import com.visakha.txmdmext.history.MasterVersion;
 import com.visakha.txmdmext.history.MetaInfo;
+import com.visakha.txmdmext.store.DbTime;
+import com.visakha.txmdmext.store.MasterStore;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** EVT_MASTER_HIST: Type 2, one row per master per event. Close and append only. */
+/** EVT_ZLV_GUEST_MASTER_HIST: Type 2, one row per master per event. Close and append only. */
 @Repository
-public class MasterHistoryRepository {
+public class GuestMasterRepository implements MasterStore {
 
   static final String CURRENT_MD5 =
       """
       SELECT row_md5
-        FROM EVT_MASTER_HIST
+        FROM %s
        WHERE business_id = :businessId
          AND is_current = 1
        ORDER BY valid_from DESC, hist_id DESC
        FETCH FIRST 1 ROWS ONLY
-      """;
+      """
+          .formatted(GuestTables.MASTER);
 
   static final String CLOSE_CURRENT =
       """
-      UPDATE EVT_MASTER_HIST
+      UPDATE %s
          SET valid_to = :validTo, is_current = 0
        WHERE business_id = :businessId
          AND is_current = 1
-      """;
+      """
+          .formatted(GuestTables.MASTER);
 
   static final String INSERT =
       """
-      INSERT INTO EVT_MASTER_HIST (
+      INSERT INTO %s (
         business_id, active_business_id, id01, event_type, implied_operation, correlation_id,
         date_of_change, user_name, event_source_system, merged_business_ids,
         state_base, state_validation, state_create_mode,
@@ -52,17 +55,18 @@ public class MasterHistoryRepository {
         :doNotContactInd, :linkedinUrl, :lastTouchDtm, :prevLastTouchDtm, :touchIncr,
         :touchNotes, :touchCdCd, :touchCdNm,
         :isDeleted, :payloadJson, :rowMd5, :validFrom, NULL, 1)
-      """;
+      """
+          .formatted(GuestTables.MASTER);
 
   private final JdbcClient jdbc;
   private final DbTime time;
 
-  public MasterHistoryRepository(JdbcClient jdbc, DbTime time) {
+  public GuestMasterRepository(JdbcClient jdbc, DbTime time) {
     this.jdbc = jdbc;
     this.time = time;
   }
 
-  /** row_md5 of the current row; empty when there is none (or it predates row_md5). */
+  @Override
   public Optional<String> currentMd5(String businessId) {
     return jdbc.sql(CURRENT_MD5)
         .param("businessId", businessId)
@@ -71,6 +75,7 @@ public class MasterHistoryRepository {
         .map(String::trim);
   }
 
+  @Override
   public void closeCurrent(String businessId, LocalDateTime validTo) {
     jdbc.sql(CLOSE_CURRENT)
         .param("validTo", validTo, Types.TIMESTAMP)
@@ -78,9 +83,10 @@ public class MasterHistoryRepository {
         .update();
   }
 
+  @Override
   public void insert(MasterVersion v) {
     MetaInfo m = v.meta();
-    GuestRoot r = v.root();
+    GuestRoot r = (GuestRoot) v.root();
     Lookup touchCd = r.touchCd() == null ? new Lookup(null, null) : r.touchCd();
     jdbc.sql(INSERT)
         .param("businessId", v.businessId(), Types.VARCHAR)

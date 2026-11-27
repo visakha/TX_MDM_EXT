@@ -7,8 +7,8 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -28,19 +28,23 @@ public final class RowHash {
 
   public static final String DELIMITER = "|";
 
-  private final Map<HistTable, List<String>> formulas;
+  private final Map<String, List<String>> formulas;
 
-  private RowHash(Map<HistTable, List<String>> formulas) {
+  private RowHash(Map<String, List<String>> formulas) {
     this.formulas = formulas;
   }
 
-  /** Builds and validates the formulas from the txmdmext.md5 map of application.properties. */
-  public static RowHash fromConfig(Map<String, List<String>> config) {
+  /**
+   * Builds and validates the formulas from the txmdmext.md5 map of application.properties against
+   * the model's tables and their hashable columns (EntityModel.hashableColumns).
+   */
+  public static RowHash fromConfig(
+      Map<String, List<String>> config, Map<String, List<String>> knownColumns) {
     List<String> errors = new ArrayList<>();
-    Map<HistTable, List<String>> formulas = new EnumMap<>(HistTable.class);
+    Map<String, List<String>> formulas = new LinkedHashMap<>();
     Map<String, List<String>> safe = config == null ? Map.of() : config;
     safe.forEach((key, columns) -> {
-      HistTable table = tableFor(key);
+      String table = tableFor(key, knownColumns.keySet());
       if (table == null) {
         errors.add("txmdmext.md5." + key + ": not a Type 2 history table");
         return;
@@ -55,7 +59,7 @@ public final class RowHash {
         errors.add("txmdmext.md5." + table + ": column list is empty");
       }
       cols.stream()
-          .filter(c -> !table.knownColumns().contains(c))
+          .filter(c -> !knownColumns.get(table).contains(c))
           .forEach(c ->
               errors.add(
                   "txmdmext.md5."
@@ -63,13 +67,13 @@ public final class RowHash {
                       + ": unknown column '"
                       + c
                       + "'. Known: "
-                      + String.join(",", table.knownColumns())));
+                      + String.join(",", knownColumns.get(table))));
       if (new LinkedHashSet<>(cols).size() != cols.size()) {
         errors.add("txmdmext.md5." + table + ": a column is listed twice");
       }
       formulas.put(table, cols);
     });
-    for (HistTable table : HistTable.values()) {
+    for (String table : knownColumns.keySet()) {
       if (!formulas.containsKey(table)) {
         errors.add("txmdmext.md5." + table + " is missing (no default, list its columns)");
       }
@@ -82,18 +86,18 @@ public final class RowHash {
     return new RowHash(formulas);
   }
 
-  public List<String> columns(HistTable table) {
+  public List<String> columns(String table) {
     return formulas.get(table);
   }
 
   /** The joined, normalized text that is hashed. Public so tests and docs can show it. */
-  public String canonical(HistTable table, Map<String, Object> values) {
+  public String canonical(String table, Map<String, Object> values) {
     return formulas.get(table).stream()
         .map(col -> normalize(values.get(col)))
         .collect(Collectors.joining(DELIMITER));
   }
 
-  public String md5(HistTable table, Map<String, Object> values) {
+  public String md5(String table, Map<String, Object> values) {
     try {
       byte[] digest =
           MessageDigest.getInstance("MD5")
@@ -122,10 +126,10 @@ public final class RowHash {
     };
   }
 
-  private static HistTable tableFor(String key) {
+  private static String tableFor(String key, Set<String> tables) {
     String wanted = letters(key);
-    for (HistTable t : HistTable.values()) {
-      if (letters(t.name()).equals(wanted)) {
+    for (String t : tables) {
+      if (letters(t).equals(wanted)) {
         return t;
       }
     }
@@ -141,7 +145,7 @@ public final class RowHash {
   }
 
   /** For checks: the set of tables a config covers. */
-  public Set<HistTable> tables() {
+  public Set<String> tables() {
     return formulas.keySet();
   }
 }

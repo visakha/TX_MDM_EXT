@@ -1,34 +1,20 @@
-package com.visakha.txmdmext.history;
+package com.visakha.txmdmext.model.zlvguest;
 
+import com.visakha.txmdmext.history.Lookup;
+import com.visakha.txmdmext.history.MasterVersion;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Column name -> value of each history row, the input of RowHash. Keys are V001 column names. */
-public final class HashValues {
+/**
+ * Column name -> value of each zlv_guest history row, the input of RowHash. Keys are V001 names.
+ */
+final class GuestHashValues {
 
-  private HashValues() {}
+  private GuestHashValues() {}
 
-  public static Map<String, Object> master(MasterVersion v) {
-    Map<String, Object> m = new LinkedHashMap<>();
-    MetaInfo meta = v.meta();
-    GuestRoot r = v.root();
-    m.put("business_id", v.businessId());
-    m.put("active_business_id", v.activeBusinessId());
-    m.put("event_type", v.eventType());
-    m.put("implied_operation", v.impliedOperation());
-    m.put("correlation_id", v.correlationId());
-    m.put("date_of_change", v.dateOfChange());
-    m.put("user_name", v.userName());
-    m.put("event_source_system", v.eventSourceSystem());
-    m.put("merged_business_ids", v.mergedBusinessIds());
-    m.put("state_base", v.stateBase());
-    m.put("state_validation", v.stateValidation());
-    m.put("state_create_mode", v.stateCreateMode());
-    m.put("meta_status", meta.status());
-    m.put("meta_created_by", meta.createdBy());
-    m.put("meta_creation_date", meta.creationDate());
-    m.put("meta_updated_by", meta.updatedBy());
-    m.put("meta_last_update_date", meta.lastUpdateDate());
+  static Map<String, Object> master(MasterVersion v) {
+    Map<String, Object> m = v.headerValues();
+    GuestRoot r = (GuestRoot) v.root();
     m.put("first_name", r.firstName());
     m.put("clns_first_name", r.clnsFirstName());
     m.put("last_name", r.lastName());
@@ -47,19 +33,19 @@ public final class HashValues {
     return m;
   }
 
-  public static Map<String, Object> child(String businessId, ChildRow row, boolean deleted) {
+  static Map<String, Object> child(String businessId, GuestChild row, boolean deleted) {
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("business_id", businessId);
     m.put("child_id", row.childId());
     switch (row) {
-      case ChildRow.Phone p -> {
+      case GuestChild.Phone p -> {
         m.put("cntry_cd", p.cntryCd());
         m.put("ph_num", p.phNum());
         m.put("ph_typ_cd", code(p.phTyp()));
         m.put("ph_typ_nm", name(p.phTyp()));
         m.put("no_mrkt_calls", p.noMrktCalls());
       }
-      case ChildRow.SrcAddress a -> {
+      case GuestChild.SrcAddress a -> {
         m.put("address_line_1", a.addressLine1());
         m.put("address_line_2", a.addressLine2());
         m.put("address_line_3", a.addressLine3());
@@ -78,7 +64,7 @@ public final class HashValues {
         m.put("country_cd_cd", code(a.countryCd()));
         m.put("country_cd_nm", name(a.countryCd()));
       }
-      case ChildRow.Address a -> {
+      case GuestChild.Address a -> {
         m.put("default_indicator", a.defaultIndicator());
         m.put("address_type_cd", code(a.addressType()));
         m.put("address_type_nm", name(a.addressType()));
@@ -109,7 +95,7 @@ public final class HashValues {
         m.put("status_message", a.statusMessage());
         m.put("elevation", a.elevation());
       }
-      case ChildRow.AltId a -> {
+      case GuestChild.AltId a -> {
         m.put("alt_id_val", a.altIdVal());
         m.put("alt_id_typ_cd", code(a.altIdTyp()));
         m.put("alt_id_typ_nm", name(a.altIdTyp()));
@@ -123,14 +109,6 @@ public final class HashValues {
       }
     }
     m.put("is_deleted", deleted);
-    return m;
-  }
-
-  public static Map<String, Object> member(String businessId, MemberKey key) {
-    Map<String, Object> m = new LinkedHashMap<>();
-    m.put("business_id", businessId);
-    m.put("source_system", key.sourceSystem());
-    m.put("source_pkey", key.sourcePkey());
     return m;
   }
 

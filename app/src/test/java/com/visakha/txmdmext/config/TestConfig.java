@@ -1,6 +1,7 @@
 package com.visakha.txmdmext.config;
 
 import com.visakha.txmdmext.history.RowHash;
+import com.visakha.txmdmext.model.zlvguest.ZlvGuestModel;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -14,6 +15,8 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 
 /** Binds AppProperties the way Spring Boot does, from application.properties.example. */
 public final class TestConfig {
+
+  public static final ZlvGuestModel MODEL = new ZlvGuestModel();
 
   public static final Path EXAMPLE = Path.of("application.properties.example");
 
@@ -41,6 +44,6 @@ public final class TestConfig {
   }
 
   public static RowHash exampleRowHash() {
-    return RowHash.fromConfig(example().md5());
+    return RowHash.fromConfig(example().md5(), MODEL.hashableColumns());
   }
 }

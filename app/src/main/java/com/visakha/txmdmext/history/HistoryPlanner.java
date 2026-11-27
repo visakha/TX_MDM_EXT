@@ -5,8 +5,10 @@ import com.visakha.txmdmext.event.EventType;
 import com.visakha.txmdmext.event.FieldChange;
 import com.visakha.txmdmext.event.FieldPath;
 import com.visakha.txmdmext.event.XrefInsight;
+import com.visakha.txmdmext.model.ChildGroup;
+import com.visakha.txmdmext.model.ChildRow;
+import com.visakha.txmdmext.model.EntityModel;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,15 +20,18 @@ import java.util.stream.Stream;
 /**
  * Pure Java: turns one event plus what history already holds into the rows to write. Change data
  * capture: a master or child version is written only when its row_md5 differs from the stored one.
+ * Knows no entity fields: the EntityModel reads the payload and names the tables.
  */
 public final class HistoryPlanner {
 
   private static final int MAX_TEXT = 4000;
 
   private final RowHash hash;
+  private final EntityModel model;
 
-  public HistoryPlanner(RowHash hash) {
+  public HistoryPlanner(RowHash hash, EntityModel model) {
     this.hash = hash;
+    this.model = model;
   }
 
   public HistoryPlan plan(BusinessEvent e, PriorState prior) {
@@ -49,11 +54,11 @@ public final class HistoryPlanner {
       return null;
     }
     MasterVersion v = masterRow(e, validFrom);
-    String md5 = hash.md5(HistTable.EVT_MASTER_HIST, HashValues.master(v));
+    String md5 = hash.md5(model.masterTable(), model.masterValues(v));
     return md5.equals(prior.masterMd5()) ? null : v.withRowMd5(md5);
   }
 
-  static MasterVersion masterRow(BusinessEvent e, Instant validFrom) {
+  public MasterVersion masterRow(BusinessEvent e, Instant validFrom) {
     boolean deleted =
         switch (e.impliedOperation()) {
           case DELETE, PURGE -> true;
@@ -74,7 +79,7 @@ public final class HistoryPlanner {
         e.states().validation(),
         e.states().createMode(),
         PayloadReader.meta(e.payload()),
-        PayloadReader.root(e.payload()),
+        model.root(e.payload()),
         deleted,
         e.payload().toString(),
         validFrom,
@@ -89,14 +94,14 @@ public final class HistoryPlanner {
     if (!e.hasPayload()) {
       return List.of();
     }
-    return Arrays.stream(FieldGroup.values()).flatMap(group -> diffGroup(e, prior, group)).toList();
+    return model.childGroups().stream().flatMap(group -> diffGroup(e, prior, group)).toList();
   }
 
-  private Stream<ChildVersion> diffGroup(BusinessEvent e, PriorState prior, FieldGroup g) {
-    HistTable table = HistTable.of(g);
+  private Stream<ChildVersion> diffGroup(BusinessEvent e, PriorState prior, ChildGroup g) {
+    String table = g.table();
     Map<String, OpenChild> open = prior.openChildren(g);
     List<ChildRow> after =
-        PayloadReader.children(e.payload(), g).stream().filter(r -> r.childId() != null).toList();
+        model.children(e.payload(), g).stream().filter(r -> r.childId() != null).toList();
     Set<String> afterIds = after.stream().map(ChildRow::childId).collect(Collectors.toSet());
     Stream<ChildVersion> changed =
         after.stream()
@@ -109,8 +114,8 @@ public final class HistoryPlanner {
     return Stream.concat(changed, removed);
   }
 
-  private ChildVersion version(HistTable table, String bid, ChildRow row, boolean deleted) {
-    return new ChildVersion(row, deleted, hash.md5(table, HashValues.child(bid, row, deleted)));
+  private ChildVersion version(String table, String bid, ChildRow row, boolean deleted) {
+    return new ChildVersion(row, deleted, hash.md5(table, model.childValues(bid, row, deleted)));
   }
 
   private static boolean sameMd5(OpenChild open, String md5) {
@@ -132,7 +137,7 @@ public final class HistoryPlanner {
         .filter(m -> !prior.openMembers().contains(m))
         .map(m ->
             new MemberVersion(
-                m, hash.md5(HistTable.EVT_MEMBER_HIST, HashValues.member(e.businessId(), m))))
+                m, hash.md5(model.memberTable(), SourceColumns.member(e.businessId(), m))))
         .toList();
   }
 

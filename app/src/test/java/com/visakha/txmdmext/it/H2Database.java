@@ -8,12 +8,13 @@ import com.visakha.txmdmext.event.StoredEvent;
 import com.visakha.txmdmext.history.HistoryPlanner;
 import com.visakha.txmdmext.job.EventProcessor;
 import com.visakha.txmdmext.job.HistoryWriter;
-import com.visakha.txmdmext.store.ChildHistoryRepository;
+import com.visakha.txmdmext.model.zlvguest.GuestChildRepository;
+import com.visakha.txmdmext.model.zlvguest.GuestMasterRepository;
+import com.visakha.txmdmext.model.zlvguest.ZlvGuestModel;
 import com.visakha.txmdmext.store.DbTime;
 import com.visakha.txmdmext.store.EventStoreRepository;
 import com.visakha.txmdmext.store.FieldChangeRepository;
 import com.visakha.txmdmext.store.LoadedEventRepository;
-import com.visakha.txmdmext.store.MasterHistoryRepository;
 import com.visakha.txmdmext.store.SourceHistoryRepository;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +37,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 final class H2Database {
 
   static final Path V001 = Path.of("..", "ddl", "V001__history_tables.sql");
-  static final Path V002 = Path.of("..", "ddl", "V002__add_row_md5.sql");
+  static final Path V002 = Path.of("..", "ddl", "V002__zlv_guest_tables.sql");
 
   final DataSource dataSource;
   final JdbcClient jdbc;
@@ -73,22 +74,32 @@ final class H2Database {
 
   EventProcessor processor() {
     DbTime time = new DbTime(props);
-    MasterHistoryRepository masters = new MasterHistoryRepository(jdbc, time);
-    ChildHistoryRepository children = new ChildHistoryRepository(jdbc, time);
-    SourceHistoryRepository sources = new SourceHistoryRepository(jdbc, time);
-    FieldChangeRepository fields = new FieldChangeRepository(jdbc, time);
+    ZlvGuestModel model = TestConfig.MODEL;
+    GuestMasterRepository masters = new GuestMasterRepository(jdbc, time);
+    GuestChildRepository children = new GuestChildRepository(jdbc, time);
+    SourceHistoryRepository sources = new SourceHistoryRepository(jdbc, time, model);
+    FieldChangeRepository fields = new FieldChangeRepository(jdbc, time, model);
     return new EventProcessor(
         new EventStoreRepository(jdbc),
+        model,
         masters,
         children,
         sources,
-        new LoadedEventRepository(jdbc),
-        new HistoryPlanner(TestConfig.exampleRowHash()),
+        new LoadedEventRepository(jdbc, model),
+        new HistoryPlanner(TestConfig.exampleRowHash(), model),
         new HistoryWriter(masters, children, sources, fields, time),
         new EventParser(),
         new DataSourceTransactionManager(dataSource),
         time,
         props);
+  }
+
+  /** One row in the OLD unprefixed master table, to prove V002 leaves it alone. */
+  void insertOldMasterRow() {
+    jdbc.sql(
+            "INSERT INTO EVT_MASTER_HIST (business_id, id01, valid_from, is_current)"
+                + " VALUES ('old-1', 'old-id01', CURRENT_TIMESTAMP, 1)")
+        .update();
   }
 
   long count(String sql, Object... params) {

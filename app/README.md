@@ -2,8 +2,37 @@
 
 Spring Boot 4.1.2 + Spring Data JDBC, Java 21, Maven, Oracle JDBC. A plain scheduled job
 (not Spring Batch) that reads the B360 published events of `zlv_guest` from
-`ZLV_MDM_EVENTS_STORE` and builds master and source history in the 9 `EVT_*` tables of
-`../ddl/V001__history_tables.sql`.
+`ZLV_MDM_EVENTS_STORE` and builds master and source history in the 9 `EVT_ZLV_GUEST_*`
+tables of `../ddl/V001__history_tables.sql` (fresh schema) / `../ddl/V002__zlv_guest_tables.sql`.
+
+## History tables: EVT_ZLV_GUEST_*
+
+Every history table carries its domain prefix, so other domains (person, provider, ...) can get
+their own tables later: `EVT_ZLV_GUEST_MASTER_HIST`, `_MASTER_PHONE_HIST`, `_MASTER_SRC_ADDR_HIST`,
+`_MASTER_ADDR_HIST`, `_MASTER_ALT_ID_HIST`, `_FIELD_CHANGE`, `_MEMBER_HIST`, `_XREF_CHANGE`,
+`_SOURCE_HIST`. Constraint and index names carry the prefix too (`pk_evt_zlv_guest_...`).
+
+Some names are longer than 30 characters (longest `EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST`, 34).
+That needs Oracle 12.2+ with `COMPATIBLE >= 12.2` (identifiers up to 128 bytes).
+
+Which DDL to run (by hand; CREATE only, nothing is ever dropped):
+
+- Your database (already ran the FIRST V001 with unprefixed `EVT_*` tables): run
+  `ddl/V002__zlv_guest_tables.sql` once. It creates the 9 prefixed tables with `row_md5`.
+  The old unprefixed `EVT_*` tables are left untouched and empty; the app no longer writes
+  to them. Removing them is your / the DBA's call, by hand.
+- A fresh schema: run `ddl/V001__history_tables.sql` (same 9 tables). Do not run both.
+
+## Package layout: generic engine + one package per model
+
+Everything that names a zlv_guest field or table lives in `com.visakha.txmdmext.model.zlvguest`:
+the root and child-group records, the payload reader, the hash input, the table names
+(`GuestTables.PREFIX = "EVT_ZLV_GUEST_"`) and the two repositories whose SQL lists guest
+columns. The engine (event parsing, dedupe, ordering, Type 2 open/close, row_md5,
+field-change, xref, membership, job, config, the generic repositories) sits in the shared
+packages and only talks to the small `model.EntityModel` interface plus `store.MasterStore` /
+`store.ChildStore`. Another model later is a sibling package (for example `model.person`)
+with its own tables; a unit test checks that no engine file names a guest field or table.
 
 ## Configuration: application.properties
 
@@ -25,8 +54,8 @@ interval. The next pass starts `txmdmext.scan.interval` after the previous one f
 
 ## Change data capture: row_md5
 
-The 7 Type 2 tables (`EVT_MASTER_HIST`, `EVT_MASTER_PHONE_HIST`, `EVT_MASTER_SRC_ADDR_HIST`,
-`EVT_MASTER_ADDR_HIST`, `EVT_MASTER_ALT_ID_HIST`, `EVT_MEMBER_HIST`, `EVT_SOURCE_HIST`) carry
+The 7 Type 2 tables (`EVT_ZLV_GUEST_MASTER_HIST`, `_MASTER_PHONE_HIST`, `_MASTER_SRC_ADDR_HIST`,
+`_MASTER_ADDR_HIST`, `_MASTER_ALT_ID_HIST`, `_MEMBER_HIST`, `_SOURCE_HIST`) carry
 `row_md5 CHAR(32)`. The formula of each table is the ordered column list in
 `txmdmext.md5.<TABLE>`:
 
@@ -44,10 +73,7 @@ The 7 Type 2 tables (`EVT_MASTER_HIST`, `EVT_MASTER_PHONE_HIST`, `EVT_MASTER_SRC
 - Changing a list changes all future hashes; old rows keep their old hashes, so expect one
   extra version per record after a change.
 
-DDL: `ddl/V001__history_tables.sql` now has `row_md5` built in (for a fresh schema).
-You already ran the old V001, so run `ddl/V002__add_row_md5.sql` (ALTER TABLE ... ADD only)
-once by hand. Existing rows keep `row_md5` NULL; the next event of each record writes one
-version with a hash.
+Both V001 (fresh schema) and V002 (your database) create the tables with `row_md5` built in.
 
 ## What it does
 
@@ -60,16 +86,16 @@ Each pass:
    xrefChange, membershipChange, changeType). Unknown values map to OTHER / UNKNOWN.
 5. Orders by `dateOfChange`, falling back to `EVT_DTM` when it is null, tie-break `ID01`.
 6. For each event, in ONE transaction:
-   - `EVT_MASTER_HIST`: if the row_md5 changed, closes the current row and appends a new one
+   - `EVT_ZLV_GUEST_MASTER_HIST`: if the row_md5 changed, closes the current row and appends a new one
      (root fields, lookups as `_cd` / `_nm`, states, `_meta`, full payload JSON).
-   - `EVT_MASTER_PHONE_HIST`, `EVT_MASTER_SRC_ADDR_HIST`, `EVT_MASTER_ADDR_HIST`,
-     `EVT_MASTER_ALT_ID_HIST`: compares each child row (by `_id`) with the open row in the
+   - the four child tables (`..._PHONE_HIST`, `..._SRC_ADDR_HIST`, `..._ADDR_HIST`,
+     `..._ALT_ID_HIST`): compares each child row (by `_id`) with the open row in the
      table by row_md5. New or changed = new version. Gone = final version with `is_deleted = 1`.
-   - `EVT_MEMBER_HIST`: `members[]` is the full membership after the event; added members are
+   - `EVT_ZLV_GUEST_MEMBER_HIST`: `members[]` is the full membership after the event; added members are
      opened, missing ones closed (`id01_closed`). A MASTER_MERGED loser closes all its members.
-   - `EVT_FIELD_CHANGE`: one row per `dataDiff` entry (`seq_no` 1..n), values stored as text,
+   - `EVT_ZLV_GUEST_FIELD_CHANGE`: one row per `dataDiff` entry (`seq_no` 1..n), values stored as text,
      DELETED entries keep `new_value` null. Every `touch_notes` edit is its own row.
-   - `EVT_XREF_CHANGE`: one row per `affectedXrefs` entry, keyed by source system + source pkey.
+   - `EVT_ZLV_GUEST_XREF_CHANGE`: one row per `affectedXrefs` entry, keyed by source system + source pkey.
      `business_id` is the master of the event, never the xref's own businessId (UC26).
    - Stamps `PROCESSED_DTM` on every row of that `ID01` in the same transaction, so a crash
      leaves the event unprocessed and history untouched.
@@ -85,7 +111,7 @@ Muse's proposal built on the real 36 events; please check them against your inte
 
 ## What it does NOT do yet
 
-- `EVT_SOURCE_HIST` is NOT filled. It needs source VALUES from the B360 source-record API;
+- `EVT_ZLV_GUEST_SOURCE_HIST` is NOT filled. It needs source VALUES from the B360 source-record API;
   events only carry source keys. See `source/SourceRecordReader` (interface + TODO).
 - The IDMC publish trigger is OFF by default and was never run against your org. It mirrors
   tx-mdm (v3 login, then `POST {mdmUrl}/job/public/api/v1/jobInstance/{kind}` with
@@ -144,7 +170,9 @@ No mocking framework. Fixtures are the real 44 rows / 36 events of
 | `HistoryPlannerTest` | general history rules, no version for unchanged content, touch_notes |
 | `UseCaseTest` | one test per use case of USE_CASES.md and the 5 older samples |
 | `it/H2HistoryIT` | end to end on H2 (MODE=Oracle): real V001, real SQL, real rows checked |
-| `it/H2RerunIT` | second run adds nothing, reprocessing adds nothing, bad rows, V002 |
+| `it/H2RerunIT` | second run adds nothing, reprocessing adds nothing, bad rows, V002 beside the old tables |
+| `model/zlvguest/ZlvGuestModelTest` | prefix on all 9 tables, tables in both DDL files, hash columns, engine stays guest-free |
+| `store/SqlNamesTest` | only plain Oracle identifiers get into SQL text |
 
 The H2 tests create a fresh in-memory database per test class and apply
 `../ddl/V001__history_tables.sql` unchanged plus a test-only CREATE of
@@ -156,9 +184,19 @@ H2 is a test-scope dependency only.
 | Package | What |
 |---|---|
 | `config` | `AppProperties` (all `txmdmext.*` settings), bean wiring |
+| `model` | `EntityModel`, `ChildGroup`, `ChildRow`, `EntityRoot`: what the engine needs from a model |
+| `model.zlvguest` | zlv_guest only: records, payload reader, table names, hash input, master/child repositories |
 | `event` | Records and enums of the event JSON, parser, dedupe and ordering |
 | `history` | Pure Java: `HistoryPlanner` (event + prior state -> rows), `RowHash` (row_md5) |
-| `store` | Explicit repositories, SQL as named constants (`JdbcClient`) |
+| `store` | Event store, field change, membership/xref, idempotency repositories (`JdbcClient`); `MasterStore` / `ChildStore` interfaces |
 | `job` | `ScanJob` (interval from properties), `EventProcessor` (one transaction per event), `HistoryWriter` |
 | `idmc` | `IdmcPublishTrigger`: disabled default + B360 job call (unverified) |
-| `source` | `SourceRecordReader` interface for `EVT_SOURCE_HIST` (TODO) |
+| `source` | `SourceRecordReader` interface for `EVT_ZLV_GUEST_SOURCE_HIST` (TODO) |
+
+## How SQL gets its table names
+
+SQL stays as named text-block constants. Guest repositories fill in their table name once, from
+the `GuestTables` constants (`"""...FROM %s...""".formatted(GuestTables.MASTER)`). The shared
+repositories (field change, membership, xref, idempotency) take the names from `EntityModel` at
+startup and check each with `SqlNames.table` (plain `A-Z 0-9 _` identifier, max 128). Names come
+from code constants, never from input or properties. No reflection, no ORM.

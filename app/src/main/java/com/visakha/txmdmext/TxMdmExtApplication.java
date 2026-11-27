@@ -5,7 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-/** Reads zlv_guest business events from ZLV_MDM_EVENTS_STORE and writes the EVT_* history. */
+/**
+ * Reads business events from ZLV_MDM_EVENTS_STORE and writes the history tables of the model (today
+ * zlv_guest, see package model.zlvguest).
+ */
 @SpringBootApplication
 @EnableScheduling
 @ConfigurationPropertiesScan

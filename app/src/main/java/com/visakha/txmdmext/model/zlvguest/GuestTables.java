@@ -1,31 +1,33 @@
-package com.visakha.txmdmext.history;
+package com.visakha.txmdmext.model.zlvguest;
 
+import com.visakha.txmdmext.history.MasterVersion;
+import com.visakha.txmdmext.history.SourceColumns;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
- * The Type 2 history tables that carry row_md5, with every column that MAY be part of the hash
- * (business columns of V001; not hist_id, id01, valid_from/to, is_current, load_dtm, payload).
+ * The zlv_guest history tables (ddl/V001, ddl/V002). Every name carries the domain prefix so other
+ * domains (person, provider, ...) get their own tables. Names over 30 chars need Oracle 12.2+.
  */
-public enum HistTable {
-  EVT_MASTER_HIST(
+public final class GuestTables {
+
+  public static final String PREFIX = "EVT_ZLV_GUEST_";
+
+  public static final String MASTER = PREFIX + "MASTER_HIST";
+  public static final String MASTER_PHONE = PREFIX + "MASTER_PHONE_HIST";
+  public static final String MASTER_SRC_ADDR = PREFIX + "MASTER_SRC_ADDR_HIST";
+  public static final String MASTER_ADDR = PREFIX + "MASTER_ADDR_HIST";
+  public static final String MASTER_ALT_ID = PREFIX + "MASTER_ALT_ID_HIST";
+  public static final String FIELD_CHANGE = PREFIX + "FIELD_CHANGE";
+  public static final String MEMBER = PREFIX + "MEMBER_HIST";
+  public static final String XREF_CHANGE = PREFIX + "XREF_CHANGE";
+  public static final String SOURCE = PREFIX + "SOURCE_HIST";
+
+  /** Root (single-valued) zlv_guest columns of the master table, then is_deleted. */
+  static final List<String> ROOT_COLUMNS =
       List.of(
-          "business_id",
-          "active_business_id",
-          "event_type",
-          "implied_operation",
-          "correlation_id",
-          "date_of_change",
-          "user_name",
-          "event_source_system",
-          "merged_business_ids",
-          "state_base",
-          "state_validation",
-          "state_create_mode",
-          "meta_status",
-          "meta_created_by",
-          "meta_creation_date",
-          "meta_updated_by",
-          "meta_last_update_date",
           "first_name",
           "clns_first_name",
           "last_name",
@@ -40,8 +42,9 @@ public enum HistTable {
           "touch_notes",
           "touch_cd_cd",
           "touch_cd_nm",
-          "is_deleted")),
-  EVT_MASTER_PHONE_HIST(
+          "is_deleted");
+
+  static final List<String> PHONE_COLUMNS =
       List.of(
           "business_id",
           "child_id",
@@ -50,8 +53,9 @@ public enum HistTable {
           "ph_typ_cd",
           "ph_typ_nm",
           "no_mrkt_calls",
-          "is_deleted")),
-  EVT_MASTER_SRC_ADDR_HIST(
+          "is_deleted");
+
+  static final List<String> SRC_ADDR_COLUMNS =
       List.of(
           "business_id",
           "child_id",
@@ -72,8 +76,9 @@ public enum HistTable {
           "postal_cd",
           "country_cd_cd",
           "country_cd_nm",
-          "is_deleted")),
-  EVT_MASTER_ADDR_HIST(
+          "is_deleted");
+
+  static final List<String> ADDR_COLUMNS =
       List.of(
           "business_id",
           "child_id",
@@ -106,8 +111,9 @@ public enum HistTable {
           "status_code",
           "status_message",
           "elevation",
-          "is_deleted")),
-  EVT_MASTER_ALT_ID_HIST(
+          "is_deleted");
+
+  static final List<String> ALT_ID_COLUMNS =
       List.of(
           "business_id",
           "child_id",
@@ -121,28 +127,22 @@ public enum HistTable {
           "sec_segment_typ_cd",
           "sec_segment_typ_nm",
           "user_notes",
-          "is_deleted")),
-  EVT_MEMBER_HIST(List.of("business_id", "source_system", "source_pkey")),
-  EVT_SOURCE_HIST(
-      List.of(
-          "source_system", "source_pkey", "business_id", "xref_type", "is_deleted", "source_json"));
+          "is_deleted");
 
-  private final List<String> knownColumns;
+  private GuestTables() {}
 
-  HistTable(List<String> knownColumns) {
-    this.knownColumns = knownColumns;
-  }
-
-  public List<String> knownColumns() {
-    return knownColumns;
-  }
-
-  public static HistTable of(FieldGroup group) {
-    return switch (group) {
-      case X_PHONE -> EVT_MASTER_PHONE_HIST;
-      case X_SRC_ADDRESS -> EVT_MASTER_SRC_ADDR_HIST;
-      case ADDRESS -> EVT_MASTER_ADDR_HIST;
-      case X_ALT_ID -> EVT_MASTER_ALT_ID_HIST;
-    };
+  /** Type 2 table -> columns that may be hashed (not hist_id, id01, valid_*, load_dtm, payload). */
+  static Map<String, List<String>> hashableColumns() {
+    Map<String, List<String>> m = new LinkedHashMap<>();
+    m.put(
+        MASTER,
+        Stream.concat(MasterVersion.HEADER_COLUMNS.stream(), ROOT_COLUMNS.stream()).toList());
+    m.put(MASTER_PHONE, PHONE_COLUMNS);
+    m.put(MASTER_SRC_ADDR, SRC_ADDR_COLUMNS);
+    m.put(MASTER_ADDR, ADDR_COLUMNS);
+    m.put(MASTER_ALT_ID, ALT_ID_COLUMNS);
+    m.put(MEMBER, SourceColumns.MEMBER);
+    m.put(SOURCE, SourceColumns.SOURCE);
+    return m;
   }
 }

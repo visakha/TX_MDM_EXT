@@ -5,20 +5,20 @@ import com.visakha.txmdmext.event.BusinessEvent;
 import com.visakha.txmdmext.event.EventBatch;
 import com.visakha.txmdmext.event.EventParser;
 import com.visakha.txmdmext.event.StoredEvent;
-import com.visakha.txmdmext.history.FieldGroup;
 import com.visakha.txmdmext.history.HistoryPlan;
 import com.visakha.txmdmext.history.HistoryPlanner;
 import com.visakha.txmdmext.history.OpenChild;
 import com.visakha.txmdmext.history.PriorState;
-import com.visakha.txmdmext.store.ChildHistoryRepository;
+import com.visakha.txmdmext.model.ChildGroup;
+import com.visakha.txmdmext.model.EntityModel;
+import com.visakha.txmdmext.store.ChildStore;
 import com.visakha.txmdmext.store.DbTime;
 import com.visakha.txmdmext.store.EventStoreRepository;
 import com.visakha.txmdmext.store.LoadedEventRepository;
-import com.visakha.txmdmext.store.MasterHistoryRepository;
+import com.visakha.txmdmext.store.MasterStore;
 import com.visakha.txmdmext.store.SourceHistoryRepository;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +39,9 @@ public class EventProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(EventProcessor.class);
 
   private final EventStoreRepository store;
-  private final MasterHistoryRepository masters;
-  private final ChildHistoryRepository children;
+  private final EntityModel model;
+  private final MasterStore masters;
+  private final ChildStore children;
   private final SourceHistoryRepository sources;
   private final LoadedEventRepository loaded;
   private final HistoryPlanner planner;
@@ -52,8 +53,9 @@ public class EventProcessor {
 
   public EventProcessor(
       EventStoreRepository store,
-      MasterHistoryRepository masters,
-      ChildHistoryRepository children,
+      EntityModel model,
+      MasterStore masters,
+      ChildStore children,
       SourceHistoryRepository sources,
       LoadedEventRepository loaded,
       HistoryPlanner planner,
@@ -63,6 +65,7 @@ public class EventProcessor {
       DbTime time,
       AppProperties props) {
     this.store = store;
+    this.model = model;
     this.masters = masters;
     this.children = children;
     this.sources = sources;
@@ -133,8 +136,8 @@ public class EventProcessor {
   }
 
   private PriorState prior(String businessId) {
-    Map<FieldGroup, Map<String, OpenChild>> open = new EnumMap<>(FieldGroup.class);
-    Arrays.stream(FieldGroup.values()).forEach(g -> open.put(g, children.openRows(g, businessId)));
+    Map<ChildGroup, Map<String, OpenChild>> open = new HashMap<>();
+    model.childGroups().forEach(g -> open.put(g, children.openRows(g, businessId)));
     return new PriorState(
         masters.currentMd5(businessId).orElse(null), open, sources.openMembers(businessId));
   }

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.visakha.txmdmext.config.TestConfig;
 import com.visakha.txmdmext.event.BusinessEvent;
 import com.visakha.txmdmext.event.Fixtures;
+import com.visakha.txmdmext.model.zlvguest.GuestChild;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,8 @@ class HistoryPlannerTest {
   void createStartsFromNothing() {
     BusinessEvent create = Fixtures.byId01Prefix(events, "6b092107", "MASTER_CREATED");
     HistoryPlan plan =
-        new HistoryPlanner(TestConfig.exampleRowHash()).plan(create, PriorState.NONE);
+        new HistoryPlanner(TestConfig.exampleRowHash(), TestConfig.MODEL)
+            .plan(create, PriorState.NONE);
     assertNotNull(plan.master());
     assertEquals(32, plan.master().rowMd5().length());
     assertEquals(1, plan.membersToOpen().size());
@@ -112,6 +114,6 @@ class HistoryPlannerTest {
     InMemoryHistory.ChildEvent last =
         history.childEventsOf("100000000000172", "2dca242eedb34fa98eacbaa17dd87212").getLast();
     assertTrue(last.version().deleted());
-    assertEquals(5125550711L, ((ChildRow.Phone) last.version().row()).phNum());
+    assertEquals(5125550711L, ((GuestChild.Phone) last.version().row()).phNum());
   }
 }

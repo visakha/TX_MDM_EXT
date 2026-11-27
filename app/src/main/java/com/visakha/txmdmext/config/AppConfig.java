@@ -6,6 +6,7 @@ import com.visakha.txmdmext.history.RowHash;
 import com.visakha.txmdmext.idmc.B360JobPublishTrigger;
 import com.visakha.txmdmext.idmc.DisabledPublishTrigger;
 import com.visakha.txmdmext.idmc.IdmcPublishTrigger;
+import com.visakha.txmdmext.model.EntityModel;
 import com.visakha.txmdmext.source.NotConfiguredSourceRecordReader;
 import com.visakha.txmdmext.source.SourceRecordReader;
 import org.springframework.context.annotation.Bean;
@@ -22,13 +23,13 @@ public class AppConfig {
 
   /** Fails startup when a txmdmext.md5.TABLE entry is missing or names an unknown column. */
   @Bean
-  RowHash rowHash(AppProperties props) {
-    return RowHash.fromConfig(props.md5());
+  RowHash rowHash(AppProperties props, EntityModel model) {
+    return RowHash.fromConfig(props.md5(), model.hashableColumns());
   }
 
   @Bean
-  HistoryPlanner historyPlanner(RowHash rowHash) {
-    return new HistoryPlanner(rowHash);
+  HistoryPlanner historyPlanner(RowHash rowHash, EntityModel model) {
+    return new HistoryPlanner(rowHash, model);
   }
 
   @Bean

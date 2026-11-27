@@ -5,7 +5,7 @@ import java.util.Optional;
 
 /**
  * Reads one source record's VALUES from the B360 source-record API. Events carry only source keys,
- * so EVT_SOURCE_HIST can only be filled through this.
+ * so the source history table (EVT_<DOMAIN>_SOURCE_HIST) can only be filled through this.
  */
 public interface SourceRecordReader {
 

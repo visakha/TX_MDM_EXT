@@ -59,24 +59,40 @@ class H2RerunIT {
     // Bad rows stay unprocessed so they show up again (and in the log) on the next pass.
     assertEquals(
         2, db.count("SELECT COUNT(*) FROM ZLV_MDM_EVENTS_STORE WHERE processed_dtm IS NULL"));
-    assertTrue(db.count("SELECT COUNT(*) FROM EVT_MASTER_HIST") > 0);
+    assertTrue(db.count("SELECT COUNT(*) FROM EVT_ZLV_GUEST_MASTER_HIST") > 0);
   }
 
   @Test
-  void v002AddsRowMd5ToAnOldV001Schema() {
+  void v002CreatesPrefixedTablesBesideTheOldOnes() {
     H2Database db = new H2Database();
-    // Test-only tweak: rebuild the pre-row_md5 V001 by leaving its row_md5 lines out of the text.
-    String oldV001 =
+    // Test-only: rebuild the FIRST V001 (unprefixed names, no row_md5) from today's V001 text.
+    String firstV001 =
         H2Database.read(H2Database.V001)
+            .replace("EVT_ZLV_GUEST_", "EVT_")
+            .replace("_evt_zlv_guest_", "_evt_")
             .lines()
             .filter(l -> !l.trim().startsWith("row_md5"))
             .collect(Collectors.joining("\n"));
-    db.run(oldV001);
+    db.run(firstV001);
+    db.insertOldMasterRow();
     db.run(H2Database.read(H2Database.V002));
+    long oldTables = db.count(TABLE_COUNT, "EVT\\_%", "EVT\\_ZLV\\_GUEST\\_%");
+    long newTables = db.count(TABLE_COUNT_LIKE, "EVT\\_ZLV\\_GUEST\\_%");
+    assertEquals(9, oldTables);
+    assertEquals(9, newTables);
+    // The old table and its row are untouched.
+    assertEquals(1, db.count("SELECT COUNT(*) FROM EVT_MASTER_HIST"));
     assertEquals(
         7,
         db.count(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE UPPER(COLUMN_NAME) ="
                 + " 'ROW_MD5'"));
   }
+
+  private static final String TABLE_COUNT =
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE ? ESCAPE '\\'"
+          + " AND TABLE_NAME NOT LIKE ? ESCAPE '\\'";
+
+  private static final String TABLE_COUNT_LIKE =
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE ? ESCAPE '\\'";
 }

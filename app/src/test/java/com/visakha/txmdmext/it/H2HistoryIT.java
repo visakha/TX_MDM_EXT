@@ -21,15 +21,15 @@ class H2HistoryIT {
 
   static final List<String> TABLES =
       List.of(
-          "EVT_MASTER_HIST",
-          "EVT_MASTER_PHONE_HIST",
-          "EVT_MASTER_SRC_ADDR_HIST",
-          "EVT_MASTER_ADDR_HIST",
-          "EVT_MASTER_ALT_ID_HIST",
-          "EVT_FIELD_CHANGE",
-          "EVT_MEMBER_HIST",
-          "EVT_XREF_CHANGE",
-          "EVT_SOURCE_HIST");
+          "EVT_ZLV_GUEST_MASTER_HIST",
+          "EVT_ZLV_GUEST_MASTER_PHONE_HIST",
+          "EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST",
+          "EVT_ZLV_GUEST_MASTER_ADDR_HIST",
+          "EVT_ZLV_GUEST_MASTER_ALT_ID_HIST",
+          "EVT_ZLV_GUEST_FIELD_CHANGE",
+          "EVT_ZLV_GUEST_MEMBER_HIST",
+          "EVT_ZLV_GUEST_XREF_CHANGE",
+          "EVT_ZLV_GUEST_SOURCE_HIST");
 
   private H2Database db;
   private BatchResult result;
@@ -46,7 +46,7 @@ class H2HistoryIT {
   private Set<String> currentMembers(String bid) {
     return Set.copyOf(
         db.strings(
-            "SELECT source_system || ':' || source_pkey FROM EVT_MEMBER_HIST"
+            "SELECT source_system || ':' || source_pkey FROM EVT_ZLV_GUEST_MEMBER_HIST"
                 + " WHERE business_id = ? AND is_current = 1",
             bid));
   }
@@ -71,21 +71,24 @@ class H2HistoryIT {
     assertEquals(
         0,
         db.count(
-            "SELECT COUNT(*) FROM (SELECT business_id FROM EVT_MASTER_HIST"
+            "SELECT COUNT(*) FROM (SELECT business_id FROM EVT_ZLV_GUEST_MASTER_HIST"
                 + " GROUP BY business_id HAVING SUM(is_current) <> 1)"));
     // 9 use-case masters (162 163 164 172 173 183 184 192 193) + 4 older samples.
-    assertEquals(13, db.count("SELECT COUNT(DISTINCT business_id) FROM EVT_MASTER_HIST"));
+    assertEquals(13, db.count("SELECT COUNT(DISTINCT business_id) FROM EVT_ZLV_GUEST_MASTER_HIST"));
   }
 
   @Test
   void closedMasterRowsHaveValidTo() {
     assertEquals(
         0,
-        db.count("SELECT COUNT(*) FROM EVT_MASTER_HIST WHERE is_current = 0 AND valid_to IS NULL"));
+        db.count(
+            "SELECT COUNT(*) FROM EVT_ZLV_GUEST_MASTER_HIST WHERE is_current = 0 AND valid_to IS"
+                + " NULL"));
     assertEquals(
         0,
         db.count(
-            "SELECT COUNT(*) FROM EVT_MASTER_HIST WHERE is_current = 1 AND valid_to IS NOT NULL"));
+            "SELECT COUNT(*) FROM EVT_ZLV_GUEST_MASTER_HIST WHERE is_current = 1 AND valid_to IS"
+                + " NOT NULL"));
   }
 
   @Test
@@ -103,7 +106,7 @@ class H2HistoryIT {
     assertEquals(
         2,
         db.count(
-            "SELECT COUNT(*) FROM EVT_MEMBER_HIST WHERE source_pkey = 'EVT-UC12B-ECI-2'"
+            "SELECT COUNT(*) FROM EVT_ZLV_GUEST_MEMBER_HIST WHERE source_pkey = 'EVT-UC12B-ECI-2'"
                 + " AND is_current = 0 AND id01_closed IS NOT NULL"));
   }
 
@@ -114,14 +117,14 @@ class H2HistoryIT {
     assertEquals(
         "REMOVED",
         db.strings(
-                "SELECT membership_change FROM EVT_XREF_CHANGE WHERE business_id = ?"
+                "SELECT membership_change FROM EVT_ZLV_GUEST_XREF_CHANGE WHERE business_id = ?"
                     + " AND source_pkey = 'EVT-UC12C-ECI-1' AND membership_change = 'REMOVED'",
                 "100000000000184")
             .getFirst());
     assertTrue(
         db.strings(
-                "SELECT id01_closed FROM EVT_MEMBER_HIST WHERE business_id = '100000000000184'"
-                    + " AND source_pkey = 'EVT-UC12C-ECI-1'")
+                "SELECT id01_closed FROM EVT_ZLV_GUEST_MEMBER_HIST WHERE business_id ="
+                    + " '100000000000184' AND source_pkey = 'EVT-UC12C-ECI-1'")
             .getFirst()
             .startsWith("6b0921c6"));
   }
@@ -131,8 +134,8 @@ class H2HistoryIT {
     List<String> rows =
         db.strings(
             "SELECT is_current || ',' || is_deleted || ',' || CASE WHEN valid_to IS NULL THEN"
-                + " 'open' ELSE 'closed' END FROM EVT_MASTER_PHONE_HIST WHERE business_id = ? AND"
-                + " child_id = ? ORDER BY hist_id",
+                + " 'open' ELSE 'closed' END FROM EVT_ZLV_GUEST_MASTER_PHONE_HIST WHERE business_id"
+                + " = ? AND child_id = ? ORDER BY hist_id",
             "100000000000172",
             "2dca242eedb34fa98eacbaa17dd87212");
     assertEquals(List.of("0,0,closed", "1,1,open"), rows);
@@ -142,7 +145,7 @@ class H2HistoryIT {
   void uc16aSourceAddressClosedThenDeletedVersion() {
     List<String> rows =
         db.strings(
-            "SELECT is_current || ',' || is_deleted FROM EVT_MASTER_SRC_ADDR_HIST"
+            "SELECT is_current || ',' || is_deleted FROM EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST"
                 + " WHERE business_id = ? AND child_id = ? ORDER BY hist_id",
             "100000000000192",
             "d96a50d6c077405b893085920789e242");
@@ -153,8 +156,9 @@ class H2HistoryIT {
   void uc20LookupStoredAsCodeAndName() {
     List<String> rows =
         db.strings(
-            "SELECT ph_typ_cd || '/' || ph_typ_nm || '/' || is_current FROM EVT_MASTER_PHONE_HIST"
-                + " WHERE business_id = ? AND child_id = ? ORDER BY hist_id",
+            "SELECT ph_typ_cd || '/' || ph_typ_nm || '/' || is_current FROM"
+                + " EVT_ZLV_GUEST_MASTER_PHONE_HIST WHERE business_id = ? AND child_id = ? ORDER BY"
+                + " hist_id",
             "100000000000192",
             "7ddf5b15d8e24f468ecbc53c60c5f812");
     assertEquals(List.of("Mobile/Mobile/0", "Fax/Fax/1"), rows);
@@ -163,22 +167,22 @@ class H2HistoryIT {
   @Test
   void fieldChangeRowsMatchDataDiffTotals() {
     long diffTotal = events.stream().mapToLong(e -> e.dataDiff().size()).sum();
-    assertEquals(diffTotal, db.count("SELECT COUNT(*) FROM EVT_FIELD_CHANGE"));
+    assertEquals(diffTotal, db.count("SELECT COUNT(*) FROM EVT_ZLV_GUEST_FIELD_CHANGE"));
     assertEquals(
         1,
         db.count(
-            "SELECT COUNT(*) FROM EVT_FIELD_CHANGE WHERE field_name = 'last_name' AND change_type ="
-                + " 'DELETED' AND new_value IS NULL AND old_value = 'UC7eciUpd'"));
+            "SELECT COUNT(*) FROM EVT_ZLV_GUEST_FIELD_CHANGE WHERE field_name = 'last_name' AND"
+                + " change_type = 'DELETED' AND new_value IS NULL AND old_value = 'UC7eciUpd'"));
   }
 
   @Test
   void xrefChangesKeyedBySourceAndEventMaster() {
     long xrefTotal = events.stream().mapToLong(e -> e.affectedXrefs().size()).sum();
-    assertEquals(xrefTotal, db.count("SELECT COUNT(*) FROM EVT_XREF_CHANGE"));
+    assertEquals(xrefTotal, db.count("SELECT COUNT(*) FROM EVT_ZLV_GUEST_XREF_CHANGE"));
     // UC26: xref businessId in the event is 164, the row carries the event master 184.
     assertEquals(
         "100000000000184",
-        db.strings("SELECT business_id FROM EVT_XREF_CHANGE WHERE id01 LIKE '6b0921bc%'")
+        db.strings("SELECT business_id FROM EVT_ZLV_GUEST_XREF_CHANGE WHERE id01 LIKE '6b0921bc%'")
             .getFirst());
   }
 
@@ -186,11 +190,11 @@ class H2HistoryIT {
   void rowMd5IsFilledOnEveryTypeTwoRow() {
     for (String t :
         List.of(
-            "EVT_MASTER_HIST",
-            "EVT_MASTER_PHONE_HIST",
-            "EVT_MASTER_SRC_ADDR_HIST",
-            "EVT_MASTER_ALT_ID_HIST",
-            "EVT_MEMBER_HIST")) {
+            "EVT_ZLV_GUEST_MASTER_HIST",
+            "EVT_ZLV_GUEST_MASTER_PHONE_HIST",
+            "EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST",
+            "EVT_ZLV_GUEST_MASTER_ALT_ID_HIST",
+            "EVT_ZLV_GUEST_MEMBER_HIST")) {
       assertEquals(0, db.count("SELECT COUNT(*) FROM " + t + " WHERE row_md5 IS NULL"), t);
       assertTrue(db.count("SELECT COUNT(*) FROM " + t) > 0, t);
     }
@@ -199,18 +203,19 @@ class H2HistoryIT {
   @Test
   void unchangedContentWritesNoMasterVersion() {
     // UC26 event 6b0921bc: empty dataDiff, same content -> same row_md5 -> no master row.
-    assertEquals(0, db.count("SELECT COUNT(*) FROM EVT_MASTER_HIST WHERE id01 LIKE '6b0921bc%'"));
+    assertEquals(
+        0, db.count("SELECT COUNT(*) FROM EVT_ZLV_GUEST_MASTER_HIST WHERE id01 LIKE '6b0921bc%'"));
     // Two consecutive versions of one master never share a hash (A-B-A is allowed: 163, 193).
     assertEquals(
         0,
         db.count(
-            "SELECT COUNT(*) FROM EVT_MASTER_HIST a JOIN EVT_MASTER_HIST b"
+            "SELECT COUNT(*) FROM EVT_ZLV_GUEST_MASTER_HIST a JOIN EVT_ZLV_GUEST_MASTER_HIST b"
                 + " ON a.business_id = b.business_id AND a.valid_to = b.valid_from"
                 + " AND a.is_current = 0 WHERE a.row_md5 = b.row_md5"));
   }
 
   @Test
   void eventSourceHistIsNotFilledYet() {
-    assertEquals(0, db.count("SELECT COUNT(*) FROM EVT_SOURCE_HIST"));
+    assertEquals(0, db.count("SELECT COUNT(*) FROM EVT_ZLV_GUEST_SOURCE_HIST"));
   }
 }
