@@ -5,6 +5,11 @@ import com.visakha.txmdmext.model.ChildGroup;
 import com.visakha.txmdmext.model.ChildRow;
 import com.visakha.txmdmext.model.EntityModel;
 import com.visakha.txmdmext.model.EntityRoot;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestFieldChange;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMemberHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestSourceHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestXrefChange;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -24,27 +29,27 @@ public class ZlvGuestModel implements EntityModel {
 
   @Override
   public String masterTable() {
-    return GuestTables.MASTER;
+    return GuestMasterHist.TABLE;
   }
 
   @Override
   public String fieldChangeTable() {
-    return GuestTables.FIELD_CHANGE;
+    return GuestFieldChange.TABLE;
   }
 
   @Override
   public String memberTable() {
-    return GuestTables.MEMBER;
+    return GuestMemberHist.TABLE;
   }
 
   @Override
   public String xrefTable() {
-    return GuestTables.XREF_CHANGE;
+    return GuestXrefChange.TABLE;
   }
 
   @Override
   public String sourceTable() {
-    return GuestTables.SOURCE;
+    return GuestSourceHist.TABLE;
   }
 
   @Override
@@ -54,7 +59,7 @@ public class ZlvGuestModel implements EntityModel {
 
   @Override
   public Map<String, List<String>> hashableColumns() {
-    return GuestTables.hashableColumns();
+    return GuestHashColumns.hashableColumns();
   }
 
   @Override

@@ -8,14 +8,23 @@ import com.visakha.txmdmext.event.StoredEvent;
 import com.visakha.txmdmext.history.HistoryPlanner;
 import com.visakha.txmdmext.job.EventProcessor;
 import com.visakha.txmdmext.job.HistoryWriter;
-import com.visakha.txmdmext.model.zlvguest.GuestChildRepository;
-import com.visakha.txmdmext.model.zlvguest.GuestMasterRepository;
 import com.visakha.txmdmext.model.zlvguest.ZlvGuestModel;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestFieldChangeRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMasterAddrHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMasterAltIdHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMasterHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMasterPhoneHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMasterSrcAddrHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestMemberHistRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.GuestXrefChangeRepository;
+import com.visakha.txmdmext.model.zlvguest.repository.ZlvMdmEventRepository;
+import com.visakha.txmdmext.model.zlvguest.store.GuestChildStore;
+import com.visakha.txmdmext.model.zlvguest.store.GuestEventStore;
+import com.visakha.txmdmext.model.zlvguest.store.GuestFieldChangeStore;
+import com.visakha.txmdmext.model.zlvguest.store.GuestLoadedEvents;
+import com.visakha.txmdmext.model.zlvguest.store.GuestMasterStore;
+import com.visakha.txmdmext.model.zlvguest.store.GuestSourceStore;
 import com.visakha.txmdmext.store.DbTime;
-import com.visakha.txmdmext.store.EventStoreRepository;
-import com.visakha.txmdmext.store.FieldChangeRepository;
-import com.visakha.txmdmext.store.LoadedEventRepository;
-import com.visakha.txmdmext.store.SourceHistoryRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -27,12 +36,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcDataSource;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /**
- * A fresh in-memory H2 (Oracle mode) per test class, with the REAL V001 DDL applied as-is and the
- * real production repositories and EventProcessor wired by hand. Schema is created only here.
+ * A fresh in-memory H2 (Oracle mode) per test class, with the REAL V001 DDL applied as-is. The real
+ * Spring Data JDBC repositories come from a small Spring context on the production JdbcConfig
+ * (Oracle dialect forced, see OracleModeJdbcConfig); the stores and EventProcessor are wired by
+ * hand. Schema is created only here (plain test SQL).
  */
 final class H2Database {
 
@@ -43,6 +58,7 @@ final class H2Database {
   final DataSource dataSource;
   final JdbcClient jdbc;
   final AppProperties props = TestConfig.example();
+  private AnnotationConfigApplicationContext spring;
 
   H2Database() {
     JdbcDataSource ds = new JdbcDataSource();
@@ -74,24 +90,61 @@ final class H2Database {
         .update();
   }
 
+  /** The production repositories (JdbcConfig) on this database. Built once, on first use. */
+  AnnotationConfigApplicationContext spring() {
+    if (spring == null) {
+      AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+      ctx.registerBean(DataSource.class, () -> dataSource);
+      ctx.registerBean(
+          NamedParameterJdbcOperations.class, () -> new NamedParameterJdbcTemplate(dataSource));
+      ctx.registerBean(
+          "transactionManager",
+          PlatformTransactionManager.class,
+          () -> new DataSourceTransactionManager(dataSource));
+      ctx.register(OracleModeJdbcConfig.class);
+      ctx.refresh();
+      spring = ctx;
+    }
+    return spring;
+  }
+
   EventProcessor processor() {
+    AnnotationConfigApplicationContext ctx = spring();
     DbTime time = new DbTime(props);
     ZlvGuestModel model = TestConfig.MODEL;
-    GuestMasterRepository masters = new GuestMasterRepository(jdbc, time);
-    GuestChildRepository children = new GuestChildRepository(jdbc, time);
-    SourceHistoryRepository sources = new SourceHistoryRepository(jdbc, time, model);
-    FieldChangeRepository fields = new FieldChangeRepository(jdbc, time, model);
+    GuestMasterHistRepository masterRepo = ctx.getBean(GuestMasterHistRepository.class);
+    GuestMasterPhoneHistRepository phoneRepo = ctx.getBean(GuestMasterPhoneHistRepository.class);
+    GuestMasterSrcAddrHistRepository srcAddrRepo =
+        ctx.getBean(GuestMasterSrcAddrHistRepository.class);
+    GuestMasterAddrHistRepository addrRepo = ctx.getBean(GuestMasterAddrHistRepository.class);
+    GuestMasterAltIdHistRepository altIdRepo = ctx.getBean(GuestMasterAltIdHistRepository.class);
+    GuestFieldChangeRepository fieldRepo = ctx.getBean(GuestFieldChangeRepository.class);
+    GuestMemberHistRepository memberRepo = ctx.getBean(GuestMemberHistRepository.class);
+    GuestXrefChangeRepository xrefRepo = ctx.getBean(GuestXrefChangeRepository.class);
+    GuestMasterStore masters = new GuestMasterStore(masterRepo, time);
+    GuestChildStore children =
+        new GuestChildStore(phoneRepo, srcAddrRepo, addrRepo, altIdRepo, time);
+    GuestSourceStore sources = new GuestSourceStore(memberRepo, xrefRepo, time);
+    GuestFieldChangeStore fields = new GuestFieldChangeStore(fieldRepo, time);
     return new EventProcessor(
-        new EventStoreRepository(jdbc),
+        new GuestEventStore(ctx.getBean(ZlvMdmEventRepository.class)),
         model,
         masters,
         children,
         sources,
-        new LoadedEventRepository(jdbc, model),
+        new GuestLoadedEvents(
+            masterRepo,
+            phoneRepo,
+            srcAddrRepo,
+            addrRepo,
+            altIdRepo,
+            fieldRepo,
+            xrefRepo,
+            memberRepo),
         new HistoryPlanner(TestConfig.exampleRowHash(), model),
         new HistoryWriter(masters, children, sources, fields, time),
         new EventParser(),
-        new DataSourceTransactionManager(dataSource),
+        ctx.getBean(PlatformTransactionManager.class),
         time,
         props);
   }

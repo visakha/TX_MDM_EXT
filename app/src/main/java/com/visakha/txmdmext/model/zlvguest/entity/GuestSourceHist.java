@@ -1,0 +1,31 @@
+package com.visakha.txmdmext.model.zlvguest.entity;
+
+import java.time.LocalDateTime;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.ReadOnlyProperty;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+/**
+ * One row of EVT_ZLV_GUEST_SOURCE_HIST (ddl/V002): source record values, Type 2. Events carry only
+ * source keys, so this table is filled from the B360 source-record API; that reader is not
+ * configured yet, so nothing writes this table today (the entity and repository are ready).
+ */
+@Table(GuestSourceHist.TABLE)
+public record GuestSourceHist(
+    @Id @Column("hist_id") Long histId,
+    @Column("source_system") String sourceSystem,
+    @Column("source_pkey") String sourcePkey,
+    @Column("business_id") String businessId,
+    @Column("id01") String id01,
+    @Column("xref_type") String xrefType,
+    @Column("is_deleted") Integer isDeleted,
+    @Column("source_json") String sourceJson,
+    @Column("row_md5") String rowMd5,
+    @Column("valid_from") LocalDateTime validFrom,
+    @Column("valid_to") LocalDateTime validTo,
+    @Column("is_current") Integer isCurrent,
+    @ReadOnlyProperty @Column("load_dtm") LocalDateTime loadDtm) {
+
+  public static final String TABLE = "EVT_ZLV_GUEST_SOURCE_HIST";
+}

@@ -26,16 +26,43 @@ Which DDL to run (by hand; CREATE only, nothing is ever dropped):
   text column `phone_num` to `EVT_ZLV_GUEST_MASTER_PHONE_HIST`. The app reads and writes
   `phone_num` (B360 x_phone.phone_num, TEXT); the old Integer `ph_num` column stays, unused.
 
-## Package layout: generic engine + one package per model
+## Package layout: generic engine + one package per business entity
 
-Everything that names a zlv_guest field or table lives in `com.visakha.txmdmext.model.zlvguest`:
-the root and child-group records, the payload reader, the hash input, the table names
-(`GuestTables.PREFIX = "EVT_ZLV_GUEST_"`) and the two repositories whose SQL lists guest
-columns. The engine (event parsing, dedupe, ordering, Type 2 open/close, row_md5,
-field-change, xref, membership, job, config, the generic repositories) sits in the shared
-packages and only talks to the small `model.EntityModel` interface plus `store.MasterStore` /
-`store.ChildStore`. Another model later is a sibling package (for example `model.person`)
-with its own tables; a unit test checks that no engine file names a guest field or table.
+Everything that belongs to the zlv_guest business entity lives in
+`com.visakha.txmdmext.model.zlvguest`. Another business entity later (provider, member, ...)
+gets its own sibling package (for example `model.provider`) laid out the same way:
+
+| Package | What |
+|---|---|
+| `model.zlvguest` | payload records (`GuestRoot`, `GuestChild`), `FieldGroup`, payload reader, hash input (`GuestHashColumns`, `GuestHashValues`), `ZlvGuestModel` |
+| `model.zlvguest.entity` | one Spring Data JDBC entity record per table, `@Table` with the FULL table name, `@Id` on the identity column, `@Column` on every field |
+| `model.zlvguest.repository` | one repository interface per entity (`ListCrudRepository`), derived query methods |
+| `model.zlvguest.store` | the zlv_guest implementations of the engine's store interfaces, built on the repositories |
+
+Entities and repositories (table -> entity -> repository):
+
+| Table | Entity | Repository |
+|---|---|---|
+| `EVT_ZLV_GUEST_MASTER_HIST` | `GuestMasterHist` | `GuestMasterHistRepository` |
+| `EVT_ZLV_GUEST_MASTER_PHONE_HIST` | `GuestMasterPhoneHist` | `GuestMasterPhoneHistRepository` |
+| `EVT_ZLV_GUEST_MASTER_SRC_ADDR_HIST` | `GuestMasterSrcAddrHist` | `GuestMasterSrcAddrHistRepository` |
+| `EVT_ZLV_GUEST_MASTER_ADDR_HIST` | `GuestMasterAddrHist` | `GuestMasterAddrHistRepository` |
+| `EVT_ZLV_GUEST_MASTER_ALT_ID_HIST` | `GuestMasterAltIdHist` | `GuestMasterAltIdHistRepository` |
+| `EVT_ZLV_GUEST_FIELD_CHANGE` | `GuestFieldChange` | `GuestFieldChangeRepository` |
+| `EVT_ZLV_GUEST_MEMBER_HIST` | `GuestMemberHist` | `GuestMemberHistRepository` |
+| `EVT_ZLV_GUEST_XREF_CHANGE` | `GuestXrefChange` | `GuestXrefChangeRepository` |
+| `EVT_ZLV_GUEST_SOURCE_HIST` | `GuestSourceHist` | `GuestSourceHistRepository` (ready, not written yet) |
+| `ZLV_MDM_EVENTS_STORE` | `ZlvMdmEvent` | `ZlvMdmEventRepository` (read + stamp only) |
+
+Type 2 write = find the current row through the repository, `save()` a closed copy
+(`closed(...)`: valid_to set, is_current = 0, an UPDATE), then `save()` the new row (histId
+null, an INSERT; Oracle fills the identity and load_dtm). `load_dtm` is `@ReadOnlyProperty`.
+The legacy `ph_num` column is deliberately not mapped.
+
+The engine (event parsing, dedupe, ordering, Type 2 planning, row_md5, job, config) sits in the
+shared packages and only talks to `model.EntityModel` and the `store` interfaces
+(`MasterStore`, `ChildStore`, `SourceStore`, `FieldChangeStore`, `LoadedEventCheck`,
+`EventStore`). A unit test checks that no engine file names a guest field or table.
 
 ## Configuration: application.properties
 
@@ -176,11 +203,10 @@ No mocking framework. Fixtures are the real 44 rows / 36 events of
 | `AppPropertiesTest` | scan interval 1m 5m 10m 1h 2h, missing interval, example file |
 | `HistoryPlannerTest` | general history rules, no version for unchanged content, touch_notes |
 | `UseCaseTest` | one test per use case of USE_CASES.md and the 5 older samples |
-| `it/H2HistoryIT` | end to end on H2 (MODE=Oracle): real V001, real SQL, real rows checked |
+| `it/H2HistoryIT` | end to end on H2 (MODE=Oracle): real V001, the real repositories (Oracle dialect), real rows checked |
 | `it/H2RerunIT` | second run adds nothing, reprocessing adds nothing, bad rows, V002 beside the old tables |
 | `model/zlvguest/fileimport/FileImportGeneratorTest` | file import generator: same seed same files, ASCII / no quotes / CRLF, files match expected, round 3 one delete per row, lookups in LOOKUPS.md, dates increase |
-| `model/zlvguest/ZlvGuestModelTest` | prefix on all 9 tables, tables in both DDL files, hash columns, engine stays guest-free |
-| `store/SqlNamesTest` | only plain Oracle identifiers get into SQL text |
+| `model/zlvguest/ZlvGuestModelTest` | prefix on all 9 tables, tables in both DDL files, every entity maps its V002/V003 table column for column, hash columns, engine stays guest-free |
 | `web/HeartbeatTest` | heartbeat built from the scan status; GET /api/heartbeat through MockMvc |
 
 The H2 tests create a fresh in-memory database per test class and apply
@@ -234,24 +260,27 @@ applies, as in the verified rounds); only round 3 fills them.
 
 | Package | What |
 |---|---|
-| `config` | `AppProperties` (all `txmdmext.*` settings), bean wiring |
+| `config` | `AppProperties` (all `txmdmext.*` settings), bean wiring, `JdbcConfig` (Spring Data JDBC, unquoted names) |
 | `model` | `EntityModel`, `ChildGroup`, `ChildRow`, `EntityRoot`: what the engine needs from a model |
-| `model.zlvguest` | zlv_guest only: records, payload reader, table names, hash input, master/child repositories |
+| `model.zlvguest` (+ `.entity`, `.repository`, `.store`) | zlv_guest only: see Package layout above |
 | `model.zlvguest.fileimport` | File import test generator (plain main, no Spring) |
 | `event` | Records and enums of the event JSON, parser, dedupe and ordering |
 | `history` | Pure Java: `HistoryPlanner` (event + prior state -> rows), `RowHash` (row_md5) |
-| `store` | Event store, field change, membership/xref, idempotency repositories (`JdbcClient`); `MasterStore` / `ChildStore` interfaces |
+| `store` | Store interfaces the engine uses (implemented per business entity), `DbTime` |
 | `job` | `ScanJob` (interval from properties), `EventProcessor` (one transaction per event), `HistoryWriter` |
 | `idmc` | `IdmcPublishTrigger`: B360 publish job call (`mdm_zlv_guest_pub_evts_001`) |
 | `source` | `SourceRecordReader` interface for `EVT_ZLV_GUEST_SOURCE_HIST` (TODO) |
 
-## How SQL gets its table names
+## How tables are named in code
 
-SQL stays as named text-block constants. Guest repositories fill in their table name once, from
-the `GuestTables` constants (`"""...FROM %s...""".formatted(GuestTables.MASTER)`). The shared
-repositories (field change, membership, xref, idempotency) take the names from `EntityModel` at
-startup and check each with `SqlNames.table` (plain `A-Z 0-9 _` identifier, max 128). Names come
-from code constants, never from input or properties. No reflection, no ORM.
+Each entity carries its table name as a literal: `@Table(GuestMasterHist.TABLE)` with
+`TABLE = "EVT_ZLV_GUEST_MASTER_HIST"`, and every column as `@Column("first_name")`. Search the
+repo for a table or column name and you land on its entity. No string-built names, no
+`.formatted(...)`, no hand-written SQL for the history tables: the repositories use Spring Data
+JDBC derived methods (`findByBusinessIdAndIsCurrent`, `existsById01`, ...). The one `@Query` is
+`ZlvMdmEventRepository.markProcessed` (the event store has no primary key and repeats ID01, so it
+stamps every copy of an ID01 in one UPDATE). `JdbcConfig` turns identifier quoting off so the
+names match Oracle's unquoted upper-case names. Spring Data JDBC never runs DDL.
 
 ## Log file location
 

@@ -13,10 +13,10 @@ import com.visakha.txmdmext.model.ChildGroup;
 import com.visakha.txmdmext.model.EntityModel;
 import com.visakha.txmdmext.store.ChildStore;
 import com.visakha.txmdmext.store.DbTime;
-import com.visakha.txmdmext.store.EventStoreRepository;
-import com.visakha.txmdmext.store.LoadedEventRepository;
+import com.visakha.txmdmext.store.EventStore;
+import com.visakha.txmdmext.store.LoadedEventCheck;
 import com.visakha.txmdmext.store.MasterStore;
-import com.visakha.txmdmext.store.SourceHistoryRepository;
+import com.visakha.txmdmext.store.SourceStore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,12 +38,12 @@ public class EventProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(EventProcessor.class);
 
-  private final EventStoreRepository store;
+  private final EventStore store;
   private final EntityModel model;
   private final MasterStore masters;
   private final ChildStore children;
-  private final SourceHistoryRepository sources;
-  private final LoadedEventRepository loaded;
+  private final SourceStore sources;
+  private final LoadedEventCheck loaded;
   private final HistoryPlanner planner;
   private final HistoryWriter writer;
   private final EventParser parser;
@@ -52,12 +52,12 @@ public class EventProcessor {
   private final int batchSize;
 
   public EventProcessor(
-      EventStoreRepository store,
+      EventStore store,
       EntityModel model,
       MasterStore masters,
       ChildStore children,
-      SourceHistoryRepository sources,
-      LoadedEventRepository loaded,
+      SourceStore sources,
+      LoadedEventCheck loaded,
       HistoryPlanner planner,
       HistoryWriter writer,
       EventParser parser,

@@ -6,9 +6,9 @@ import com.visakha.txmdmext.history.MemberKey;
 import com.visakha.txmdmext.history.MemberVersion;
 import com.visakha.txmdmext.store.ChildStore;
 import com.visakha.txmdmext.store.DbTime;
-import com.visakha.txmdmext.store.FieldChangeRepository;
+import com.visakha.txmdmext.store.FieldChangeStore;
 import com.visakha.txmdmext.store.MasterStore;
-import com.visakha.txmdmext.store.SourceHistoryRepository;
+import com.visakha.txmdmext.store.SourceStore;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Component;
 
@@ -18,15 +18,15 @@ public class HistoryWriter {
 
   private final MasterStore masters;
   private final ChildStore children;
-  private final SourceHistoryRepository sources;
-  private final FieldChangeRepository fieldChanges;
+  private final SourceStore sources;
+  private final FieldChangeStore fieldChanges;
   private final DbTime time;
 
   public HistoryWriter(
       MasterStore masters,
       ChildStore children,
-      SourceHistoryRepository sources,
-      FieldChangeRepository fieldChanges,
+      SourceStore sources,
+      FieldChangeStore fieldChanges,
       DbTime time) {
     this.masters = masters;
     this.children = children;

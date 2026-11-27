@@ -2,28 +2,23 @@ package com.visakha.txmdmext.model.zlvguest;
 
 import com.visakha.txmdmext.history.MasterVersion;
 import com.visakha.txmdmext.history.SourceColumns;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterAddrHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterAltIdHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterPhoneHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterSrcAddrHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMemberHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestSourceHist;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * The zlv_guest history tables (ddl/V001, ddl/V002). Every name carries the domain prefix so other
- * domains (person, provider, ...) get their own tables. Names over 30 chars need Oracle 12.2+.
+ * The columns of each zlv_guest Type 2 history table that may be listed in its txmdmext.md5 formula
+ * (application.properties). Table names are the literal TABLE constants of the entities.
  */
-public final class GuestTables {
-
-  public static final String PREFIX = "EVT_ZLV_GUEST_";
-
-  public static final String MASTER = PREFIX + "MASTER_HIST";
-  public static final String MASTER_PHONE = PREFIX + "MASTER_PHONE_HIST";
-  public static final String MASTER_SRC_ADDR = PREFIX + "MASTER_SRC_ADDR_HIST";
-  public static final String MASTER_ADDR = PREFIX + "MASTER_ADDR_HIST";
-  public static final String MASTER_ALT_ID = PREFIX + "MASTER_ALT_ID_HIST";
-  public static final String FIELD_CHANGE = PREFIX + "FIELD_CHANGE";
-  public static final String MEMBER = PREFIX + "MEMBER_HIST";
-  public static final String XREF_CHANGE = PREFIX + "XREF_CHANGE";
-  public static final String SOURCE = PREFIX + "SOURCE_HIST";
+public final class GuestHashColumns {
 
   /** Root (single-valued) zlv_guest columns of the master table, then is_deleted. */
   static final List<String> ROOT_COLUMNS =
@@ -129,20 +124,20 @@ public final class GuestTables {
           "user_notes",
           "is_deleted");
 
-  private GuestTables() {}
+  private GuestHashColumns() {}
 
   /** Type 2 table -> columns that may be hashed (not hist_id, id01, valid_*, load_dtm, payload). */
   static Map<String, List<String>> hashableColumns() {
     Map<String, List<String>> m = new LinkedHashMap<>();
     m.put(
-        MASTER,
+        GuestMasterHist.TABLE,
         Stream.concat(MasterVersion.HEADER_COLUMNS.stream(), ROOT_COLUMNS.stream()).toList());
-    m.put(MASTER_PHONE, PHONE_COLUMNS);
-    m.put(MASTER_SRC_ADDR, SRC_ADDR_COLUMNS);
-    m.put(MASTER_ADDR, ADDR_COLUMNS);
-    m.put(MASTER_ALT_ID, ALT_ID_COLUMNS);
-    m.put(MEMBER, SourceColumns.MEMBER);
-    m.put(SOURCE, SourceColumns.SOURCE);
+    m.put(GuestMasterPhoneHist.TABLE, PHONE_COLUMNS);
+    m.put(GuestMasterSrcAddrHist.TABLE, SRC_ADDR_COLUMNS);
+    m.put(GuestMasterAddrHist.TABLE, ADDR_COLUMNS);
+    m.put(GuestMasterAltIdHist.TABLE, ALT_ID_COLUMNS);
+    m.put(GuestMemberHist.TABLE, SourceColumns.MEMBER);
+    m.put(GuestSourceHist.TABLE, SourceColumns.SOURCE);
     return m;
   }
 }

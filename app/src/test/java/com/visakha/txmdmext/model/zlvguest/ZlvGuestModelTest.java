@@ -7,17 +7,32 @@ import com.visakha.txmdmext.config.TestConfig;
 import com.visakha.txmdmext.event.Fixtures;
 import com.visakha.txmdmext.history.HistoryPlanner;
 import com.visakha.txmdmext.history.MasterVersion;
-import com.visakha.txmdmext.store.LoadedEventRepository;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestFieldChange;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterAddrHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterAltIdHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterPhoneHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMasterSrcAddrHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestMemberHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestSourceHist;
+import com.visakha.txmdmext.model.zlvguest.entity.GuestXrefChange;
+import com.visakha.txmdmext.model.zlvguest.entity.ZlvMdmEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-/** The zlv_guest model: table names, hashable columns, and that the engine stays guest-free. */
+/**
+ * The zlv_guest model: entities match the DDL, hashable columns, and the engine stays guest-free.
+ */
 class ZlvGuestModelTest {
 
   private final ZlvGuestModel model = new ZlvGuestModel();
@@ -37,7 +52,7 @@ class ZlvGuestModelTest {
     assertEquals(9, tables.size());
     assertTrue(tables.stream().allMatch(t -> t.startsWith("EVT_ZLV_GUEST_")));
     assertEquals("EVT_ZLV_GUEST_MEMBER_HIST", model.memberTable());
-    assertEquals(34, GuestTables.MASTER_SRC_ADDR.length());
+    assertEquals(34, GuestMasterSrcAddrHist.TABLE.length());
     assertTrue(tables.stream().allMatch(t -> t.length() <= 128));
   }
 
@@ -56,12 +71,12 @@ class ZlvGuestModelTest {
 
   @Test
   void hashValuesCoverExactlyTheHashableColumns() {
-    // Guards GuestTables against GuestHashValues drifting apart.
+    // Guards GuestHashColumns against GuestHashValues drifting apart.
     MasterVersion m =
         new HistoryPlanner(TestConfig.exampleRowHash(), model)
             .masterRow(Fixtures.orderedEvents().getFirst(), Instant.EPOCH);
     Map<String, List<String>> known = model.hashableColumns();
-    assertEquals(known.get(GuestTables.MASTER), List.copyOf(GuestHashValues.master(m).keySet()));
+    assertEquals(known.get(GuestMasterHist.TABLE), List.copyOf(GuestHashValues.master(m).keySet()));
     assertChild(known, new GuestChild.Phone("x", 1L, "2", null, null));
     assertChild(
         known,
@@ -81,19 +96,66 @@ class ZlvGuestModelTest {
         List.copyOf(GuestHashValues.child("b", row, false).keySet()));
   }
 
+  static final List<Class<? extends Record>> ENTITIES =
+      List.of(
+          GuestMasterHist.class,
+          GuestMasterPhoneHist.class,
+          GuestMasterSrcAddrHist.class,
+          GuestMasterAddrHist.class,
+          GuestMasterAltIdHist.class,
+          GuestFieldChange.class,
+          GuestMemberHist.class,
+          GuestXrefChange.class,
+          GuestSourceHist.class);
+
   @Test
-  void idempotencyCheckCoversEveryWrittenTable() {
-    String sql = new LoadedEventRepository(null, model).sql();
-    Stream.of(
-            GuestTables.MASTER,
-            GuestTables.MASTER_PHONE,
-            GuestTables.MASTER_SRC_ADDR,
-            GuestTables.MASTER_ADDR,
-            GuestTables.MASTER_ALT_ID,
-            GuestTables.FIELD_CHANGE,
-            GuestTables.XREF_CHANGE,
-            GuestTables.MEMBER)
-        .forEach(t -> assertTrue(sql.contains("FROM " + t + " WHERE"), t));
+  void everyEntityMapsItsV002TableColumnForColumn() throws IOException {
+    // V002 creates the tables, V003 adds phone_num. Unmapped on purpose: legacy ph_num only.
+    String ddl =
+        Files.readString(Path.of("..", "ddl", "V002__zlv_guest_tables.sql"))
+            + Files.readString(Path.of("..", "ddl", "V003__zlv_guest_phone_num.sql"));
+    for (Class<? extends Record> entity : ENTITIES) {
+      String table = entity.getAnnotation(Table.class).value();
+      List<String> mapped = columns(entity);
+      List<String> inDdl = ddlColumns(ddl, table);
+      List<String> missing = inDdl.stream().filter(c -> !mapped.contains(c)).toList();
+      List<String> unknown = mapped.stream().filter(c -> !inDdl.contains(c)).toList();
+      assertEquals(List.of(), unknown, table + " entity columns not in the DDL");
+      assertEquals(
+          table.equals(GuestMasterPhoneHist.TABLE) ? List.of("ph_num") : List.of(),
+          missing,
+          table + " DDL columns not in the entity");
+    }
+    assertEquals(9, ENTITIES.size());
+    assertEquals("ZLV_MDM_EVENTS_STORE", ZlvMdmEvent.class.getAnnotation(Table.class).value());
+    assertEquals(
+        Set.of("id01", "evt_dtm", "evt_dtm_tmz", "payload", "processed_dtm"),
+        Set.copyOf(columns(ZlvMdmEvent.class)));
+  }
+
+  /** The @Column names of an entity record (record component annotations land on its fields). */
+  private static List<String> columns(Class<? extends Record> entity) {
+    return Arrays.stream(entity.getDeclaredFields())
+        .filter(f -> f.isAnnotationPresent(Column.class))
+        .map(f -> f.getAnnotation(Column.class).value())
+        .toList();
+  }
+
+  /** Column names of one CREATE TABLE (or ALTER TABLE ... ADD) in the DDL text, lower case. */
+  private static List<String> ddlColumns(String ddl, String table) {
+    int start = ddl.indexOf("CREATE TABLE " + table + " (");
+    String body = ddl.substring(start, ddl.indexOf(");", start));
+    Stream<String> created =
+        body.lines()
+            .skip(1)
+            .map(String::trim)
+            .filter(l -> !l.isEmpty() && !l.startsWith("CONSTRAINT"))
+            .map(l -> l.split("\\s+")[0]);
+    Stream<String> added =
+        ddl.lines()
+            .filter(l -> l.startsWith("ALTER TABLE " + table + " ADD "))
+            .map(l -> l.substring(("ALTER TABLE " + table + " ADD ").length()).split("\\s+")[0]);
+    return Stream.concat(created, added).toList();
   }
 
   @Test
