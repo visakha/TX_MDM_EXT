@@ -155,7 +155,29 @@ Restore of a deleted source record is also an operation (DOCS, not tested).
 - zlv_guest_file_import_5x_round2.csv - round 2, adds/edits/deletes in
   place. VERIFIED: adds and edits landed, deletes ignored.
 - zlv_guest_file_import_5x_round3.csv - round 3, the 9 delete rows only,
-  separate-row layout. Pending.
+  separate-row layout. Ran 2026-11-27: SUCCESS but nothing written; on hold
+  until the Informatica service request answers the delete format.
+- zlv_guest_file_import_5x_round4a.csv (zlv_ttf, 5 rows) and
+  zlv_guest_file_import_5x_round4b_zlv_eci.csv (zlv_eci, 1 row) - round 4:
+  blank cell, stale date, bad lookup, too-long number, no-op re-send, same
+  key from a second source, optional rerun. Expected outcomes:
+  zlv_guest_file_import_5x_round4_expected.md. Pending.
+
+### File import use cases - tracker
+
+| Round | Case | What it tests | Status |
+|---|---|---|---|
+| R1 | UC-FI1..5 | creates, cross-product rows dedupe | VERIFIED (BIDs 200-204) |
+| R2 | UC-FI1..5-R2 | adds, in-place edits | VERIFIED |
+| R2 | UC-FI1..5-R2 | deletes on cross-product rows | VERIFIED ignored |
+| R3 | UC-FI1..5-R3 | deletes on own rows, root Patch | wrote nothing; on hold (SR) |
+| R4 | R4-1 | blank root cell under Patch | pending |
+| R4 | R4-2 | older Source Last Update Date | pending |
+| R4 | R4-3 | lookup value not on the list | pending |
+| R4 | R4-4 | phone number too long | pending |
+| R4 | R4-5 | no-op re-send, same values and date | pending |
+| R4 | R4-6 | same key from zlv_eci | pending |
+| R4 | R4-7 | whole-file rerun (optional) | pending |
 
 Use touch_notes to label each record with its use case (for example
 "UC-FI3-R2 del Mobile PH-1"). It is our field for test notes.
