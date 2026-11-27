@@ -36,3 +36,12 @@ Input: ext-docs/extract_20261127_005124.zip -> ZLV_MDM_EVENTS_STORE.dsv (pipe, h
 2. EVT_DTM came out as 1.7958E+12 (sqlplus rounded the number). FIXED in tools/extract/extract.ps1 with
    SET NUMWIDTH 20 (commit 516bc64). Re-run the extract to get full epoch ms.
 3. EVT_DTM_TMZ and PROCESSED_DTM are empty on every row (expected: nothing has processed them yet).
+
+## Re-run with full timestamps - extract_20261127_005948.zip (checked ~01:03 CST)
+- Same data: 44 rows, 36 distinct ID01.
+- EVT_DTM is now full 13-digit epoch ms on every row (NUMWIDTH fix works).
+- EVT_DTM is always a little AFTER dateOfChange: 34 to 415 ms later on all 34 events that have both.
+  So EVT_DTM is when IDMC wrote the event, dateOfChange is when the record changed.
+- The 2 events with no dateOfChange: 193 UNMERGE at EVT_DTM 1795760576313, 164 MASTER_UNMERGED at 1795760582650.
+  Both fall in the right place next to their partner events (163 UNMERGED, 184 UNMERGE).
+- ORDERING RULE for the app: order by dateOfChange; when it is null use EVT_DTM; tie-break on ID01.
