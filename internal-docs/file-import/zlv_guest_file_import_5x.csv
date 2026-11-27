@@ -1,0 +1,31 @@
+Source Primary Key,first_name,last_name,touch_notes,ph_typ,cntry_cd,ph_num,address_line_1,city,state_cd,postal_cd,country_cd,address_typ,address_status_cd,alt_id_typ,alt_id_val
+FI-UC-1,Fione,Phonesonly,"UC-FI1 2 phones, no address, 1 alt id",Mobile,1,5125550401,,,,,,,,DL,TXDL0001
+FI-UC-1,Fione,Phonesonly,"UC-FI1 2 phones, no address, 1 alt id",Fax,1,5125550402,,,,,,,,DL,TXDL0001
+FI-UC-2,Fitwo,Addronly,"UC-FI2 no phone, 2 addresses, no alt id",,,,402 Test Ln,Austin,TX,78701,US,MA,Active,,
+FI-UC-2,Fitwo,Addronly,"UC-FI2 no phone, 2 addresses, no alt id",,,,403 Test Ln,Leander,TX,78641,US,PA,Active,,
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,Mobile,1,5125550403,404 Test Ln,Austin,TX,78702,US,MA,Active,Passport,P0000003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,Mobile,1,5125550403,404 Test Ln,Austin,TX,78702,US,MA,Active,TIN,TIN00003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,Mobile,1,5125550403,405 Test Ln,Kyle,TX,78640,US,PA,Active,Passport,P0000003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,Mobile,1,5125550403,405 Test Ln,Kyle,TX,78640,US,PA,Active,TIN,TIN00003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,LandLine,1,5125550404,404 Test Ln,Austin,TX,78702,US,MA,Active,Passport,P0000003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,LandLine,1,5125550404,404 Test Ln,Austin,TX,78702,US,MA,Active,TIN,TIN00003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,LandLine,1,5125550404,405 Test Ln,Kyle,TX,78640,US,PA,Active,Passport,P0000003
+FI-UC-3,Fithree,Twotwotwo,UC-FI3 2 phones x 2 addresses x 2 alt ids,LandLine,1,5125550404,405 Test Ln,Kyle,TX,78640,US,PA,Active,TIN,TIN00003
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Mobile,1,5125550405,406 Test Ln,Round Rock,TX,78664,US,MA,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Mobile,1,5125550405,406 Test Ln,Round Rock,TX,78664,US,MA,Active,EMP ID,EMP0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Mobile,1,5125550405,407 Test Ln,Austin,TX,78703,US,CR,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Mobile,1,5125550405,407 Test Ln,Austin,TX,78703,US,CR,Active,EMP ID,EMP0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Cell,1,5125550406,406 Test Ln,Round Rock,TX,78664,US,MA,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Cell,1,5125550406,406 Test Ln,Round Rock,TX,78664,US,MA,Active,EMP ID,EMP0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Cell,1,5125550406,407 Test Ln,Austin,TX,78703,US,CR,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,Cell,1,5125550406,407 Test Ln,Austin,TX,78703,US,CR,Active,EMP ID,EMP0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,VoIP,1,5125550407,406 Test Ln,Round Rock,TX,78664,US,MA,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,VoIP,1,5125550407,406 Test Ln,Round Rock,TX,78664,US,MA,Active,EMP ID,EMP0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,VoIP,1,5125550407,407 Test Ln,Austin,TX,78703,US,CR,Active,DL,TXDL0004
+FI-UC-4,Fifour,Threetwotwo,UC-FI4 3 phones x 2 addresses x 2 alt ids,VoIP,1,5125550407,407 Test Ln,Austin,TX,78703,US,CR,Active,EMP ID,EMP0004
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,408 Test Ln,Austin,TX,78704,US,MA,Active,SSN,000000005
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,408 Test Ln,Austin,TX,78704,US,MA,Active,Passport,P0000005
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,409 Test Ln,Cedar Park,TX,78613,US,PA,Active,SSN,000000005
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,409 Test Ln,Cedar Park,TX,78613,US,PA,Active,Passport,P0000005
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,410 Test Ln,Georgetown,TX,78626,US,AM1,Active,SSN,000000005
+FI-UC-5,Fifive,Onethreetwo,UC-FI5 1 phone x 3 addresses x 2 alt ids,Telephone,1,5125550408,410 Test Ln,Georgetown,TX,78626,US,AM1,Active,Passport,P0000005
